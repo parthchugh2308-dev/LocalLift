@@ -1184,15 +1184,15 @@
 
                 // ── LOCATION & MAP PICKER ─────────────────────────────
                 requestLiveLocation() {
+                    this.locatingGps = true;
+                    this.showToast('Finding your location...', 'info');
+
                     if (!navigator.geolocation) {
-                        this.showToast('Geolocation not supported in browser', 'error');
-                        this.showManualSearch = true;
+                        this.fallbackIpLocation();
                         return;
                     }
 
-                    this.locatingGps = true;
-                    this.showToast('Requesting GPS location...', 'info');
-
+                    // First try GPS
                     navigator.geolocation.getCurrentPosition(
                         async (pos) => {
                             this.locatingGps = false;
@@ -1200,13 +1200,45 @@
                             const lon = pos.coords.longitude;
                             await this.openMapConfirmation(lat, lon);
                         },
-                        (err) => {
-                            this.locatingGps = false;
-                            this.showToast('GPS access denied or timed out. Please enter area name.', 'error');
-                            this.showManualSearch = true;
+                        async (err) => {
+                            // On mobile/iOS GPS timeout or denial, seamlessly fallback to IP geolocation
+                            console.log('GPS unavailable or timed out, trying IP fallback:', err);
+                            await this.fallbackIpLocation();
                         },
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
                     );
+                },
+
+                async fallbackIpLocation() {
+                    try {
+                        const res = await fetch('https://ipapi.co/json/');
+                        const data = await res.json();
+                        this.locatingGps = false;
+                        if (data && data.latitude && data.longitude) {
+                            const cityName = data.city || data.region || 'Local Area';
+                            this.showToast('Detected ' + cityName + ' area! Adjust on map.', 'info');
+                            await this.openMapConfirmation(data.latitude, data.longitude, cityName);
+                            return;
+                        }
+                    } catch(e) {
+                        // Fallback 2: FreeIPAPI
+                        try {
+                            const res2 = await fetch('https://freeipapi.com/api/json');
+                            const data2 = await res2.json();
+                            this.locatingGps = false;
+                            if (data2 && data2.latitude) {
+                                const cName = data2.cityName || 'Local City';
+                                this.showToast('Detected ' + cName + ' area! Adjust on map.', 'info');
+                                await this.openMapConfirmation(data2.latitude, data2.longitude, cName);
+                                return;
+                            }
+                        } catch(e2){}
+                    }
+
+                    // Default fallback: Ludhiana / Delhi
+                    this.locatingGps = false;
+                    this.showToast('Opening map for your area. Drag pin to set exact location.', 'info');
+                    await this.openMapConfirmation(30.9010, 75.8573, 'Ludhiana, Punjab');
                 },
 
                 async geocodeManualLocation() {
