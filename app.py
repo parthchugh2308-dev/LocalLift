@@ -108,12 +108,70 @@ def get_vendors():
     conn.close()
     return jsonify(result)
 
+CITY_AREAS_DB = {
+    'ludhiana': ['Model Town', 'Civil Lines', 'Sarabha Nagar', 'Ghumar Mandi', 'Ferozepur Road', 'Mall Road', 'Gill Road', 'Pakhowal Road', 'Kitchlu Nagar', 'BRS Nagar', 'Dugri Phase 1', 'Clock Tower Market', 'Field Ganj', 'Aggar Nagar', 'Samrala Chowk', 'Haibowal'],
+    'chandigarh': ['Sector 17 Plaza', 'Sector 35 Market', 'Sector 22 Shopping Center', 'Sector 8 Market', 'Sector 9 Inner Market', 'Sector 11', 'Sector 26', 'Sector 43', 'Sector 7 Market', 'Sector 19', 'Sector 32', 'Sector 15', 'Sector 20', 'Sector 18', 'Sector 34', 'Sector 10'],
+    'delhi': ['Connaught Place', 'Karol Bagh', 'Hauz Khas Village', 'Lajpat Nagar', 'South Extension', 'Chandni Chowk', 'Saket District', 'Rajouri Garden', 'Dwarka Sector 6', 'Rohini Sector 9', 'Greater Kailash 1', 'Vasant Kunj', 'Janakpuri', 'Pitampura', 'Mayur Vihar', 'Kamla Nagar'],
+    'mumbai': ['Bandra West', 'Andheri West', 'Juhu Tara Road', 'Colaba Causeway', 'Dadar West', 'Powai Hiranandani', 'Malad Link Road', 'Borivali West', 'Lower Parel', 'Goregaon East', 'Santacruz West', 'Vile Parle East', 'Khar West', 'Chembur Central', 'Ghatkopar East', 'Mulund West'],
+    'jalandhar': ['Model Town', 'Civil Lines', 'Urban Estate Phase 2', 'Cantt Road', 'Guru Nanak Mission Chowk', 'Jyoti Chowk', 'Rama Mandi', 'Lajpat Nagar', 'PIMS Road', 'Nakodar Road', 'BMC Chowk', 'Basti Nau', 'GT Road', 'Mota Singh Nagar', 'Adarsh Nagar', 'Jalandhar Heights'],
+    'amritsar': ['Lawrence Road', 'Mall Road', 'Ranjit Avenue', 'Crystal Chowk', 'Hall Bazaar', 'Majitha Road', 'Circular Road', 'Green Avenue', 'Albert Road', 'Putligarh', 'Katra Jaimal Singh', 'Queens Road', 'Batala Road', 'Custom Chowk', 'GT Road', 'Guru Bazar'],
+    'bangalore': ['Indiranagar 100ft Rd', 'Koramangala 5th Block', 'MG Road', 'Whitefield Main Rd', 'Jayanagar 4th Block', 'HSR Layout Sector 2', 'JP Nagar Phase 3', 'Malleshwaram 8th Cross', 'Brigade Road', 'Commercial Street', 'Marathahalli', 'Electronic City Phase 1', 'BTM Layout 2nd Stage', 'Sarjapur Road', 'Bellandur', 'Yelahanka New Town']
+}
+
+CATEGORY_STORE_TEMPLATES = {
+    'Bakery': 'Artisan Bakery & Cake Studio',
+    'Grocery': 'Super Fresh General Store',
+    'Restaurant': 'Royal Tandoor & Curries',
+    'Clothing': 'Fashion Point & Designer Boutique',
+    'Pharmacy': '24/7 Chemist & Health Hub',
+    'Electronics': 'Modern Tech & Mobile Hub',
+    'Stationery': 'ABC Books & Office Supplies',
+    'Beauty': 'Glamour Unisex Salon & Spa',
+    'Hardware': 'National Hardware & Electricals',
+    'Fruits & Vegetables': 'Farm Fresh Organic Greens',
+    'Footwear': 'StepIn Footwear Studio',
+    'Flowers': 'Petals & Blooms Florist',
+    'Pet Supplies': 'Happy Tails Pet Store',
+    'Home Services': 'QuickFix Handyman & AC Care',
+    'Dairy & Sweets': 'Pure Desi Sweets & Dairy',
+    'Cafe & Snacks': 'Kulhad Chai & Street Snacks'
+}
+
+def get_city_from_query(city_param, lat, lon):
+    c_lower = (city_param or '').lower()
+    for known_city in CITY_AREAS_DB.keys():
+        if known_city in c_lower:
+            return known_city
+            
+    # Coords rough bounds
+    if 30.7 <= lat <= 31.1 and 75.6 <= lon <= 76.1:
+        return 'ludhiana'
+    elif 30.6 <= lat <= 30.85 and 76.6 <= lon <= 76.9:
+        return 'chandigarh'
+    elif 28.3 <= lat <= 28.9 and 76.8 <= lon <= 77.5:
+        return 'delhi'
+    elif 18.8 <= lat <= 19.3 and 72.7 <= lon <= 73.1:
+        return 'mumbai'
+    elif 31.2 <= lat <= 31.45 and 75.45 <= lon <= 75.75:
+        return 'jalandhar'
+    elif 31.55 <= lat <= 31.75 and 74.75 <= lon <= 75.0:
+        return 'amritsar'
+    elif 12.8 <= lat <= 13.15 and 77.45 <= lon <= 77.75:
+        return 'bangalore'
+        
+    return 'ludhiana' # default vibrant demo city
+
 @app.route('/api/vendors/nearby', methods=['GET'])
 def get_nearby():
     # User's GPS or manual location
-    lat = float(request.args.get('lat', 28.6139))
-    lon = float(request.args.get('lon', 77.2090))
+    lat = float(request.args.get('lat', 30.9010))
+    lon = float(request.args.get('lon', 75.8573))
     cat = request.args.get('category', '').strip()
+    city_param = request.args.get('city', '').strip() or request.args.get('addr', '').strip()
+
+    detected_city_key = get_city_from_query(city_param, lat, lon)
+    area_list = CITY_AREAS_DB.get(detected_city_key, CITY_AREAS_DB['ludhiana'])
+    city_display = detected_city_key.title()
 
     conn = get_db()
     q = "SELECT * FROM Vendors"
@@ -125,11 +183,20 @@ def get_nearby():
     vendors = conn.execute(q, params).fetchall()
     result = []
     
-    for v in vendors:
+    for idx, v in enumerate(vendors):
         vd = dict(v)
+        # Assign local area based on vendor index
+        local_area = area_list[idx % len(area_list)]
+        category_title = CATEGORY_STORE_TEMPLATES.get(vd['category'], vd['category'] + ' Store')
+        
+        # Localized store name and address
+        vd['business_name'] = f"{local_area} {category_title}"
+        vd['address'] = f"Shop {idx+1}, Main Market, {local_area}, {city_display}"
+        vd['city'] = city_display
+
         # Calculate dynamic pinpoint coordinates around the user's current GPS location
-        lat_off = vd.get('lat_offset') or 0.0015
-        lon_off = vd.get('lon_offset') or 0.0015
+        lat_off = vd.get('lat_offset') or (0.0012 * (1 if idx % 2 == 0 else -1))
+        lon_off = vd.get('lon_offset') or (0.0014 * (1 if idx % 3 == 0 else -1))
         
         projected_lat = round(lat + lat_off, 6)
         projected_lon = round(lon + lon_off, 6)

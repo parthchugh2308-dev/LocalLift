@@ -1365,16 +1365,18 @@
                             if (!this.confirmMapObj) {
                                 this.confirmMapObj = L.map('confirmMapEl', { zoomControl: false }).setView([lat, lon], 16);
                                 
-                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                    maxZoom: 19,
-                                    attribution: '© OpenStreetMap'
+                                // Google Maps Standard HD Tiles
+                                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                                    maxZoom: 20,
+                                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                                    attribution: 'Map data &copy; Google Maps'
                                 }).addTo(this.confirmMapObj);
 
                                 const pinIcon = L.divIcon({
                                     className: '',
-                                    html: '<div class="shop-map-pin bg-indigo-600"><i class="fa-solid fa-location-dot"></i></div>',
-                                    iconSize: [36, 36],
-                                    iconAnchor: [18, 36]
+                                    html: '<div class="shop-map-pin bg-rose-600 shadow-xl border-2 border-white"><i class="fa-solid fa-location-dot"></i></div>',
+                                    iconSize: [38, 38],
+                                    iconAnchor: [19, 38]
                                 });
 
                                 this.confirmMarkerObj = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(this.confirmMapObj);
@@ -1448,7 +1450,7 @@
                 async fetchHyperlocalData() {
                     try {
                         const [vRes, oRes] = await Promise.all([
-                            fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}`),
+                            fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}&addr=${encodeURIComponent(this.userAddr || '')}`),
                             fetch('/api/offers')
                         ]);
 
@@ -1509,9 +1511,11 @@
                             if (!this.mainMapObj) {
                                 this.mainMapObj = L.map('fullMainMap', { zoomControl: false }).setView([this.userLat, this.userLon], 15);
 
-                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                    maxZoom: 19,
-                                    attribution: '© OpenStreetMap'
+                                // Google Maps Standard HD Tiles
+                                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                                    maxZoom: 20,
+                                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                                    attribution: 'Map data &copy; Google Maps'
                                 }).addTo(this.mainMapObj);
 
                                 // User GPS Dot
