@@ -969,8 +969,9 @@
                 <!-- Note -->
                 <input type="text" x-model="orderNote" placeholder="Instructions (e.g. Call before arrival)" class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold mb-4 focus:outline-none focus:border-indigo-600">
 
-                <button @click="submitOrder()" class="w-full bg-indigo-600 text-white font-extrabold py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition">
-                    Place Hyperlocal Request Now
+                <button @click="submitOrder()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                    <span>Place Order (Pay on Delivery / UPI)</span>
                 </button>
             </div>
         </div>
@@ -981,12 +982,12 @@
              class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-6 max-w-[430px] mx-auto">
             
             <div class="bg-white rounded-[32px] p-6 text-center shadow-2xl flex flex-col items-center w-full max-w-[340px]">
-                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-emerald-100">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-emerald-100 animate-bounce">
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
                 
-                <h3 class="text-2xl font-black text-gray-900 mb-1">Order Request Sent!</h3>
-                <p class="text-xs text-gray-500 font-medium mb-4">The shop owner has received your request and is packing your items right now.</p>
+                <h3 class="text-2xl font-black text-gray-900 mb-1">Order Placed Successfully!</h3>
+                <p class="text-xs text-gray-500 font-medium mb-4">The shop has accepted your order and is packing your fresh items now.</p>
                 
                 <div class="bg-indigo-50 p-3 rounded-2xl w-full text-xs font-bold text-indigo-700 mb-5">
                     Order ID: #<span x-text="lastOrderId"></span>
