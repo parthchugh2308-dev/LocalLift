@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LocalLift - Vendor Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #e5e7eb; margin: 0; }
+        .mobile-wrapper { max-width: 430px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .content-area { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 11px; font-weight: 500; cursor: pointer; transition: color 0.2s; }
+        .nav-item.active { color: #4f46e5; }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Modal transitions */
+        [x-cloak] { display: none !important; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        indigo: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' },
+                        gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 800: '#1f2937', 900: '#111827' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body x-data="vendorPortal()">
+
+<div class="mobile-wrapper">
+    <!-- NOT LOGGED IN - LOGIN SCREEN -->
+    <div x-show="!isLoggedIn" class="flex-1 flex flex-col items-center justify-center p-6 bg-white w-full h-full">
+        <div class="w-full max-w-sm flex flex-col items-center">
+            <div class="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-4 shadow-lg">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-1">LocalLift</h1>
+            <p class="text-gray-500 mb-8 font-medium text-sm">Vendor Portal</p>
+            
+            <form @submit.prevent="login" class="w-full space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <input type="email" x-model="loginForm.email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm" required placeholder="vendor@locallift.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                    <input type="password" x-model="loginForm.password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm" required placeholder="••••••••">
+                </div>
+                
+                <div x-show="loginError" x-text="loginError" class="text-red-500 text-sm font-medium text-center bg-red-50 p-2 rounded-lg" x-cloak></div>
+                
+                <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 transition-all active:scale-95" :disabled="isLoading">
+                    <span x-show="!isLoading">Login to Dashboard</span>
+                    <i x-show="isLoading" class="fa-solid fa-spinner fa-spin" x-cloak></i>
+                </button>
+            </form>
+            
+            <div class="mt-8 p-4 bg-indigo-50 rounded-xl w-full border border-indigo-100">
+                <p class="text-xs font-semibold text-indigo-800 mb-2 uppercase tracking-wider">Demo Credentials</p>
+                <p class="text-sm text-indigo-700 mb-1">Email: <span class="font-bold">vendor@locallift.com</span></p>
+                <p class="text-sm text-indigo-700">Password: <span class="font-bold">password123</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGGED IN VIEW -->
+    <template x-if="isLoggedIn">
+        <div class="flex-1 flex flex-col h-full w-full relative">
+            <!-- TOP BAR (Sticky) -->
+            <div class="bg-indigo-600 text-white px-5 py-4 shadow-md sticky top-0 z-40">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-lg leading-tight" x-text="vendorData.shop_name || 'My Shop'"></h2>
+                        <p class="text-indigo-200 text-xs mt-0.5"><i class="fa-solid fa-location-dot mr-1"></i> <span x-text="vendorData.address || 'Loading...'"></span></p>
+                    </div>
+                    <!-- Shop Status Toggle -->
+                    <div class="flex flex-col items-end">
+                        <label class="relative inline-flex items-center cursor-pointer mb-1">
+                            <input type="checkbox" x-model="vendorData.is_open" @change="toggleShopStatus" class="sr-only peer">
+                            <div class="w-11 h-6 bg-indigo-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-400"></div>
+                        </label>
+                        <span class="text-[10px] font-bold uppercase tracking-wider" :class="vendorData.is_open ? 'text-green-300' : 'text-indigo-200'" x-text="vendorData.is_open ? 'Accepting Orders' : 'Shop Closed'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT AREA -->
+            <div class="content-area bg-gray-50 hide-scroll">
+                
+                <!-- DASHBOARD TAB -->
+                <div x-show="activeTab === 'dashboard'" x-transition.opacity.duration.300ms class="p-5">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">Good morning, <span x-text="vendorData.owner_name || 'Vendor'"></span>!</h2>
+                        <p class="text-sm text-gray-500 mt-1" x-text="new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })"></p>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-box"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-0.5" x-text="dashboardStats.total_products || 0"></h3>
+                            <p class="text-xs text-gray-500 font-medium">Total Products</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                            <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-shopping-bag"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-0.5" x-text="dashboardStats.total_orders || 0"></h3>
+                            <p class="text-xs text-gray-500 font-medium">Total Orders</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-tags"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-0.5" x-text="dashboardStats.active_offers || 0"></h3>
+                            <p class="text-xs text-gray-500 font-medium">Active Offers</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-star"></i></div>
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <h3 class="text-2xl font-bold text-gray-900" x-text="dashboardStats.rating || '0.0'"></h3>
+                            </div>
+                            <p class="text-xs text-gray-500 font-medium"><span x-text="dashboardStats.reviews_count || 0"></span> Reviews</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Quick Actions</h3>
+                        <div class="flex gap-3 overflow-x-auto hide-scroll pb-2">
+                            <button @click="openAddProductModal()" class="flex-shrink-0 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-indigo-100 transition">
+                                <i class="fa-solid fa-plus-circle"></i> Add Product
+                            </button>
+                            <button @click="openAddOfferModal()" class="flex-shrink-0 bg-orange-50 border border-orange-100 text-orange-700 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-orange-100 transition">
+                                <i class="fa-solid fa-tag"></i> Add Offer
+                            </button>
+                            <button @click="activeTab = 'orders'" class="flex-shrink-0 bg-gray-100 border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-gray-200 transition">
+                                <i class="fa-solid fa-list-check"></i> View Orders
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Orders -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Recent Orders</h3>
+                            <button @click="activeTab = 'orders'" class="text-xs font-semibold text-indigo-600">See All</button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <template x-if="recentOrders.length === 0">
+                                <div class="bg-white p-6 rounded-2xl border border-gray-100 text-center text-gray-500">
+                                    <i class="fa-solid fa-inbox text-3xl mb-2 text-gray-300"></i>
+                                    <p class="text-sm font-medium">No recent orders</p>
+                                </div>
+                            </template>
+                            <template x-for="order in recentOrders" :key="order.id">
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50" @click="activeTab = 'orders'">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-bold text-gray-900 text-sm">#ORD-<span x-text="order.id"></span></span>
+                                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" 
+                                                :class="getStatusStyle(order.status)" x-text="order.status.toUpperCase()">
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mb-1" x-text="'Customer • ' + formatDate(order.created_at)"></p>
+                                        <p class="text-xs font-medium text-gray-700"><span x-text="order.items ? order.items.length : 0"></span> items • ₹<span x-text="order.total_amount"></span></p>
+                                    </div>
+                                    <div class="text-gray-400">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRODUCTS TAB -->
+                <div x-show="activeTab === 'products'" x-transition.opacity.duration.300ms class="p-5" x-cloak>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">My Products</h2>
+                        <button @click="openAddProductModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700"><i class="fa-solid fa-plus mr-1"></i> Add</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <template x-if="products.length === 0">
+                            <div class="col-span-2 bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-500">
+                                <i class="fa-solid fa-boxes-stacked text-4xl mb-3 text-gray-300"></i>
+                                <p class="text-sm font-medium mb-4">You haven't added any products yet.</p>
+                                <button @click="openAddProductModal()" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold border border-indigo-100">Add First Product</button>
+                            </div>
+                        </template>
+                        <template x-for="product in products" :key="product.id">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative" :class="{'opacity-60': !product.is_available}">
+                                <div class="h-28 bg-gray-100 relative">
+                                    <img :src="product.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=200&h=200'" class="w-full h-full object-cover" alt="Product Image">
+                                    <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px] font-bold text-gray-700 shadow-sm" x-text="product.category"></div>
+                                </div>
+                                <div class="p-3 flex-1 flex flex-col">
+                                    <h3 class="font-bold text-gray-900 text-sm leading-tight mb-1 truncate" x-text="product.name"></h3>
+                                    <p class="font-bold text-indigo-600 text-sm mb-3">₹<span x-text="product.price"></span></p>
+                                    
+                                    <div class="mt-auto flex justify-between items-center pt-2 border-t border-gray-100">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" :checked="product.is_available" @change="toggleProductAvailability(product.id, $event.target.checked)" class="sr-only peer">
+                                            <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-500"></div>
+                                        </label>
+                                        <div class="flex gap-2">
+                                            <button @click="openEditProductModal(product)" class="text-gray-400 hover:text-indigo-600"><i class="fa-solid fa-pen text-xs"></i></button>
+                                            <button @click="deleteProduct(product.id)" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ORDERS TAB -->
+                <div x-show="activeTab === 'orders'" x-transition.opacity.duration.300ms class="p-5" x-cloak>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Orders</h2>
+                    
+                    <!-- Order Filters -->
+                    <div class="flex gap-2 overflow-x-auto hide-scroll mb-5 pb-1">
+                        <template x-for="filter in ['all', 'pending', 'confirmed', 'ready', 'delivered', 'cancelled']">
+                            <button @click="orderFilter = filter" 
+                                class="flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-colors"
+                                :class="orderFilter === filter ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'"
+                                x-text="filter"></button>
+                        </template>
+                    </div>
+                    
+                    <!-- Orders List -->
+                    <div class="space-y-4">
+                        <template x-if="filteredOrders.length === 0">
+                            <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-500">
+                                <i class="fa-solid fa-receipt text-4xl mb-3 text-gray-300"></i>
+                                <p class="text-sm font-medium">No orders found in this category.</p>
+                            </div>
+                        </template>
+                        <template x-for="order in filteredOrders" :key="order.id">
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                                <div class="flex justify-between items-start mb-3 pb-3 border-b border-gray-100">
+                                    <div>
+                                        <h3 class="font-bold text-gray-900 mb-0.5">Order #ORD-<span x-text="order.id"></span></h3>
+                                        <p class="text-xs text-gray-500">Customer • <span x-text="formatDate(order.created_at)"></span></p>
+                                    </div>
+                                    <span class="text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider" 
+                                        :class="getStatusStyle(order.status)" x-text="order.status">
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <ul class="text-sm space-y-1.5 mb-3">
+                                        <template x-if="order.items && order.items.length > 0">
+                                            <template x-for="item in order.items">
+                                                <li class="flex justify-between text-gray-700">
+                                                    <span><span x-text="item.quantity" class="font-semibold text-gray-500 mr-1"></span>x <span x-text="item.product_name"></span></span>
+                                                    <span class="font-medium text-gray-900">₹<span x-text="item.price * item.quantity"></span></span>
+                                                </li>
+                                            </template>
+                                        </template>
+                                        <template x-if="!order.items || order.items.length === 0">
+                                            <li class="text-gray-500 italic text-xs">Items details not available</li>
+                                        </template>
+                                    </ul>
+                                    <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
+                                        <span class="font-bold text-gray-900">Total</span>
+                                        <span class="font-bold text-indigo-600 text-lg">₹<span x-text="order.total_amount"></span></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Action Buttons based on status -->
+                                <div class="flex gap-2 mt-4" x-show="['pending', 'confirmed', 'ready'].includes(order.status)">
+                                    <template x-if="order.status === 'pending'">
+                                        <div class="flex gap-2 w-full">
+                                            <button @click="updateOrderStatus(order.id, 'confirmed')" class="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-indigo-700">Confirm</button>
+                                            <button @click="updateOrderStatus(order.id, 'cancelled')" class="px-4 bg-red-50 text-red-600 py-2 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100">Decline</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="order.status === 'confirmed'">
+                                        <button @click="updateOrderStatus(order.id, 'ready')" class="w-full bg-blue-600 text-white py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700">Mark as Ready</button>
+                                    </template>
+                                    <template x-if="order.status === 'ready'">
+                                        <button @click="updateOrderStatus(order.id, 'delivered')" class="w-full bg-green-500 text-white py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-green-600">Mark as Delivered</button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- OFFERS TAB -->
+                <div x-show="activeTab === 'offers'" x-transition.opacity.duration.300ms class="p-5" x-cloak>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">My Offers</h2>
+                        <button @click="openAddOfferModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700"><i class="fa-solid fa-plus mr-1"></i> Add</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <template x-if="offers.length === 0">
+                            <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-500">
+                                <i class="fa-solid fa-tags text-4xl mb-3 text-gray-300"></i>
+                                <p class="text-sm font-medium mb-4">No active offers running.</p>
+                                <button @click="openAddOfferModal()" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold border border-indigo-100">Create Offer</button>
+                            </div>
+                        </template>
+                        <template x-for="offer in offers" :key="offer.id">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 relative overflow-hidden" :class="{'opacity-60': !offer.is_active}">
+                                <!-- Decorative element -->
+                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-orange-50 rounded-full z-0"></div>
+                                
+                                <div class="relative z-10 flex justify-between items-start mb-2">
+                                    <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg font-bold text-sm" x-text="offer.discount_text || offer.discount_percentage + '% OFF'"></div>
+                                    <div class="flex gap-2">
+                                        <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider" 
+                                            :class="offer.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" 
+                                            x-text="offer.is_active ? 'Active' : 'Expired'"></span>
+                                        <button @click="deleteOffer(offer.id)" class="text-gray-400 hover:text-red-500 ml-1"><i class="fa-solid fa-trash text-sm"></i></button>
+                                    </div>
+                                </div>
+                                <h3 class="font-bold text-gray-900 text-lg relative z-10 mb-1" x-text="offer.title"></h3>
+                                <p class="text-sm text-gray-600 relative z-10 mb-3 line-clamp-2" x-text="offer.description"></p>
+                                <div class="flex items-center text-xs text-gray-500 font-medium relative z-10">
+                                    <i class="fa-regular fa-calendar mr-1.5"></i>
+                                    <span x-text="formatDateShort(offer.valid_from) + ' - ' + formatDateShort(offer.valid_until)"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- PROFILE TAB -->
+                <div x-show="activeTab === 'profile'" x-transition.opacity.duration.300ms class="p-5" x-cloak>
+                    <h2 class="text-xl font-bold text-gray-900 mb-6">Store Profile</h2>
+                    
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                        <div class="h-24 bg-indigo-600 relative"></div>
+                        <div class="px-5 pb-5 relative">
+                            <div class="w-20 h-20 bg-white rounded-2xl shadow-md border-4 border-white flex items-center justify-center text-indigo-600 text-3xl -mt-10 mb-3 mx-auto z-10 relative">
+                                <i class="fa-solid fa-store"></i>
+                            </div>
+                            <div class="text-center">
+                                <h3 class="text-xl font-bold text-gray-900 mb-1" x-text="vendorData.shop_name"></h3>
+                                <p class="text-sm text-gray-500 font-medium mb-3" x-text="vendorData.category"></p>
+                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Verified Partner</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+                        <h4 class="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Business Details</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 flex-shrink-0"><i class="fa-solid fa-user"></i></div>
+                                <div>
+                                    <p class="text-xs text-gray-500 font-medium">Owner Name</p>
+                                    <p class="text-sm font-semibold text-gray-900" x-text="vendorData.owner_name"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 flex-shrink-0"><i class="fa-solid fa-phone"></i></div>
+                                <div>
+                                    <p class="text-xs text-gray-500 font-medium">Contact</p>
+                                    <p class="text-sm font-semibold text-gray-900" x-text="vendorData.phone"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 flex-shrink-0"><i class="fa-solid fa-location-dot"></i></div>
+                                <div>
+                                    <p class="text-xs text-gray-500 font-medium">Address</p>
+                                    <p class="text-sm font-semibold text-gray-900" x-text="vendorData.address"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button @click="logout" class="w-full bg-white border border-red-200 text-red-600 font-bold py-3.5 rounded-xl shadow-sm hover:bg-red-50 transition-colors">
+                        Log Out
+                    </button>
+                    <p class="text-center text-xs text-gray-400 mt-4">LocalLift Vendor Portal v1.0.0</p>
+                </div>
+                
+            </div>
+
+            <!-- BOTTOM NAVIGATION -->
+            <div class="bottom-nav">
+                <div class="nav-item" :class="{'active': activeTab === 'dashboard'}" @click="activeTab = 'dashboard'">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" :class="{'active': activeTab === 'products'}" @click="activeTab = 'products'">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>Products</span>
+                </div>
+                <div class="nav-item relative" :class="{'active': activeTab === 'orders'}" @click="activeTab = 'orders'">
+                    <!-- Notification Badge -->
+                    <div class="absolute -top-1 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[8px] text-white font-bold" x-show="getPendingOrdersCount() > 0" x-text="getPendingOrdersCount()"></div>
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>Orders</span>
+                </div>
+                <div class="nav-item" :class="{'active': activeTab === 'offers'}" @click="activeTab = 'offers'">
+                    <i class="fa-solid fa-tags"></i>
+                    <span>Offers</span>
+                </div>
+                <div class="nav-item" :class="{'active': activeTab === 'profile'}" @click="activeTab = 'profile'">
+                    <i class="fa-solid fa-store"></i>
+                    <span>Profile</span>
+                </div>
+            </div>
+            
+            <!-- ADD/EDIT PRODUCT MODAL -->
+            <div x-show="productModal.isOpen" class="absolute inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm" x-cloak>
+                <div class="bg-white w-full max-w-sm rounded-t-3xl h-[85vh] flex flex-col shadow-2xl transform transition-transform"
+                     x-show="productModal.isOpen"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="translate-y-full"
+                     x-transition:enter-end="translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="translate-y-0"
+                     x-transition:leave-end="translate-y-full"
+                     @click.outside="productModal.isOpen = false">
+                    
+                    <div class="flex justify-between items-center p-5 border-b border-gray-100">
+                        <h3 class="font-bold text-lg text-gray-900" x-text="productModal.isEdit ? 'Edit Product' : 'Add New Product'"></h3>
+                        <button @click="productModal.isOpen = false" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    
+                    <div class="p-5 overflow-y-auto flex-1 hide-scroll">
+                        <form @submit.prevent="saveProduct" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Product Name</label>
+                                <input type="text" x-model="productModal.data.name" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                                <select x-model="productModal.data.category" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                                    <option value="" disabled>Select a category</option>
+                                    <option value="Bakery Items">Bakery Items</option>
+                                    <option value="Grocery">Grocery</option>
+                                    <option value="Clothing">Clothing</option>
+                                    <option value="Pharmacy">Pharmacy</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Restaurant">Restaurant</option>
+                                    <option value="Beauty">Beauty</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Price (₹)</label>
+                                <input type="number" x-model="productModal.data.price" step="0.01" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                                <textarea x-model="productModal.data.description" rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Image URL</label>
+                                <input type="url" x-model="productModal.data.image_url" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" placeholder="https://example.com/image.jpg">
+                                <p class="text-xs text-gray-400 mt-1">Leave empty to use a placeholder image</p>
+                            </div>
+                            <div class="flex items-center justify-between py-2 border-t border-gray-100 mt-4 pt-4">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900">Available in store</p>
+                                    <p class="text-xs text-gray-500">Customers can buy this item</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="productModal.data.is_available" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl mt-4 shadow-md">
+                                <span x-text="productModal.isEdit ? 'Save Changes' : 'Add Product'"></span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADD OFFER MODAL -->
+            <div x-show="offerModal.isOpen" class="absolute inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm" x-cloak>
+                <div class="bg-white w-full max-w-sm rounded-t-3xl h-[80vh] flex flex-col shadow-2xl transform transition-transform"
+                     x-show="offerModal.isOpen"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="translate-y-full"
+                     x-transition:enter-end="translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="translate-y-0"
+                     x-transition:leave-end="translate-y-full"
+                     @click.outside="offerModal.isOpen = false">
+                    
+                    <div class="flex justify-between items-center p-5 border-b border-gray-100">
+                        <h3 class="font-bold text-lg text-gray-900">Add New Offer</h3>
+                        <button @click="offerModal.isOpen = false" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    
+                    <div class="p-5 overflow-y-auto flex-1 hide-scroll">
+                        <form @submit.prevent="saveOffer" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Offer Title</label>
+                                <input type="text" x-model="offerModal.data.title" placeholder="e.g. Weekend Special" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Discount Details</label>
+                                <input type="text" x-model="offerModal.data.discount_text" placeholder="e.g. 20% OFF or Buy 1 Get 1" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                                <textarea x-model="offerModal.data.description" rows="2" placeholder="Terms and conditions..." class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Start Date</label>
+                                    <input type="date" x-model="offerModal.data.valid_from" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">End Date</label>
+                                    <input type="date" x-model="offerModal.data.valid_until" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl mt-6 shadow-md">
+                                Create Offer
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('vendorPortal', () => ({
+        isLoggedIn: false,
+        isLoading: false,
+        vendorId: null,
+        activeTab: 'dashboard',
+        orderFilter: 'all',
+        
+        loginForm: { email: '', password: '' },
+        loginError: '',
+        
+        vendorData: {},
+        dashboardStats: {},
+        recentOrders: [],
+        products: [],
+        orders: [],
+        offers: [],
+        
+        productModal: { isOpen: false, isEdit: false, data: {} },
+        offerModal: { isOpen: false, data: {} },
+
+        init() {
+            // Check for existing session
+            const storedId = localStorage.getItem('ll_vendor_id');
+            if (storedId) {
+                this.vendorId = parseInt(storedId);
+                this.isLoggedIn = true;
+                this.loadAllData();
+            }
+            
+            // Watch for tab changes to refresh data if needed
+            this.$watch('activeTab', (value) => {
+                if (value === 'dashboard') this.fetchDashboardData();
+                if (value === 'products') this.fetchProducts();
+                if (value === 'orders') this.fetchOrders();
+                if (value === 'offers') this.fetchOffers();
+            });
+        },
+
+        async login() {
+            this.isLoading = true;
+            this.loginError = '';
+            
+            try {
+                // Simulate API Call for POST /api/auth/login
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // For demo, accept specific credentials or fallback to ID=1
+                if (this.loginForm.email === 'vendor@locallift.com' && this.loginForm.password === 'password123') {
+                    this.vendorId = 1;
+                    localStorage.setItem('ll_vendor_id', this.vendorId);
+                    this.isLoggedIn = true;
+                    this.loadAllData();
+                } else {
+                    this.loginError = 'Invalid email or password';
+                }
+            } catch (error) {
+                this.loginError = 'An error occurred during login.';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        logout() {
+            localStorage.removeItem('ll_vendor_id');
+            this.isLoggedIn = false;
+            this.vendorId = null;
+            this.loginForm = { email: '', password: '' };
+        },
+
+        async loadAllData() {
+            // Initial data load for dashboard and profile
+            this.fetchVendorProfile();
+            this.fetchDashboardData();
+            // Pre-fetch others
+            this.fetchProducts();
+            this.fetchOrders();
+            this.fetchOffers();
+        },
+
+        // --- API MOCKS ---
+        
+        async fetchVendorProfile() {
+            // Mock GET /api/vendors/{vendor_id}
+            this.vendorData = {
+                id: this.vendorId,
+                shop_name: "Sharma General Store",
+                owner_name: "Rajesh Sharma",
+                category: "Grocery",
+                address: "42 MG Road, Bangalore",
+                phone: "+91 9876543210",
+                is_open: true
+            };
+        },
+
+        async fetchDashboardData() {
+            // Mock GET /api/vendors/{vendor_id}/dashboard
+            this.dashboardStats = {
+                total_products: 45,
+                total_orders: 128,
+                active_offers: 2,
+                rating: 4.8,
+                reviews_count: 56
+            };
+            
+            // Generate some mock recent orders
+            this.recentOrders = this.generateMockOrders(5);
+        },
+
+        async fetchProducts() {
+            // Mock GET /api/products?vendor_id=X
+            if(this.products.length === 0) {
+                this.products = [
+                    { id: 1, name: "Aashirvaad Atta 5kg", category: "Grocery", price: 240, is_available: true, description: "Whole wheat atta", image_url: "https://images.unsplash.com/photo-1627483262112-039e9a0a0d16?w=300&q=80" },
+                    { id: 2, name: "Amul Butter 500g", category: "Grocery", price: 260, is_available: true, description: "Pasteurised butter", image_url: "https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=300&q=80" },
+                    { id: 3, name: "Britannia Marie Gold", category: "Bakery Items", price: 30, is_available: false, description: "Biscuits", image_url: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300&q=80" },
+                    { id: 4, name: "Tata Salt 1kg", category: "Grocery", price: 25, is_available: true, description: "Iodised salt", image_url: "https://images.unsplash.com/photo-1624469612349-f06b99676646?w=300&q=80" }
+                ];
+            }
+        },
+
+        async fetchOrders() {
+            // Mock GET /api/orders/vendor/{vendor_id}
+            if(this.orders.length === 0) {
+                this.orders = this.generateMockOrders(15);
+            }
+        },
+
+        async fetchOffers() {
+            // Mock GET /api/offers?vendor_id=X
+            if(this.offers.length === 0) {
+                const today = new Date();
+                const nextWeek = new Date(today);
+                nextWeek.setDate(today.getDate() + 7);
+                
+                this.offers = [
+                    { id: 1, title: "Weekend Grocery Bonanza", description: "Get flat 10% off on all grocery items above ₹500.", discount_text: "10% OFF", discount_percentage: 10, valid_from: today.toISOString().split('T')[0], valid_until: nextWeek.toISOString().split('T')[0], is_active: true }
+                ];
+            }
+        },
+
+        // --- ACTIONS ---
+
+        async toggleShopStatus() {
+            // Mock PATCH /api/vendors/{id}/status
+            console.log(`Shop status updated: ${this.vendorData.is_open}`);
+        },
+
+        async toggleProductAvailability(id, isAvailable) {
+            // Mock PATCH /api/products/ID/toggle
+            const p = this.products.find(x => x.id === id);
+            if(p) p.is_available = isAvailable;
+        },
+
+        openAddProductModal() {
+            this.productModal = {
+                isOpen: true,
+                isEdit: false,
+                data: { name: '', category: '', price: '', description: '', image_url: '', is_available: true }
+            };
+        },
+
+        openEditProductModal(product) {
+            this.productModal = {
+                isOpen: true,
+                isEdit: true,
+                data: { ...product }
+            };
+        },
+
+        saveProduct() {
+            // Mock POST or PUT /api/products
+            if (this.productModal.isEdit) {
+                const idx = this.products.findIndex(p => p.id === this.productModal.data.id);
+                if(idx !== -1) this.products[idx] = { ...this.productModal.data };
+            } else {
+                const newProduct = {
+                    ...this.productModal.data,
+                    id: Math.floor(Math.random() * 1000) + 100,
+                    price: parseFloat(this.productModal.data.price)
+                };
+                this.products.unshift(newProduct);
+                this.dashboardStats.total_products++;
+            }
+            this.productModal.isOpen = false;
+        },
+
+        deleteProduct(id) {
+            if(confirm('Are you sure you want to delete this product?')) {
+                this.products = this.products.filter(p => p.id !== id);
+                this.dashboardStats.total_products--;
+            }
+        },
+
+        get filteredOrders() {
+            if (this.orderFilter === 'all') return this.orders;
+            return this.orders.filter(o => o.status === this.orderFilter);
+        },
+
+        getPendingOrdersCount() {
+            return this.orders.filter(o => o.status === 'pending').length;
+        },
+
+        async updateOrderStatus(id, newStatus) {
+            // Mock PATCH /api/orders/ID/status
+            const order = this.orders.find(o => o.id === id);
+            if(order) {
+                order.status = newStatus;
+                // Sync recent orders view
+                const recent = this.recentOrders.find(o => o.id === id);
+                if(recent) recent.status = newStatus;
+            }
+        },
+
+        openAddOfferModal() {
+            const today = new Date().toISOString().split('T')[0];
+            this.offerModal = {
+                isOpen: true,
+                data: { title: '', discount_text: '', description: '', valid_from: today, valid_until: '', is_active: true }
+            };
+        },
+
+        saveOffer() {
+            // Mock POST /api/offers
+            const newOffer = {
+                ...this.offerModal.data,
+                id: Math.floor(Math.random() * 1000) + 100
+            };
+            this.offers.unshift(newOffer);
+            this.dashboardStats.active_offers++;
+            this.offerModal.isOpen = false;
+        },
+
+        deleteOffer(id) {
+            if(confirm('Are you sure you want to delete this offer?')) {
+                this.offers = this.offers.filter(o => o.id !== id);
+                this.dashboardStats.active_offers--;
+            }
+        },
+
+        // --- UTILS ---
+        
+        getStatusStyle(status) {
+            const styles = {
+                'pending': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                'confirmed': 'bg-blue-100 text-blue-800 border border-blue-200',
+                'ready': 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+                'delivered': 'bg-green-100 text-green-800 border border-green-200',
+                'cancelled': 'bg-red-100 text-red-800 border border-red-200'
+            };
+            return styles[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+        },
+        
+        formatDateShort(dateStr) {
+            if(!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        },
+
+        generateMockOrders(count) {
+            const statuses = ['pending', 'confirmed', 'ready', 'delivered', 'cancelled'];
+            let result = [];
+            for(let i=0; i<count; i++) {
+                const status = i < 2 ? 'pending' : (i < 4 ? 'confirmed' : statuses[Math.floor(Math.random() * statuses.length)]);
+                const d = new Date();
+                d.setHours(d.getHours() - (i * 2));
+                
+                result.push({
+                    id: 5000 + i,
+                    status: status,
+                    created_at: d.toISOString(),
+                    total_amount: Math.floor(Math.random() * 800) + 200,
+                    items: [
+                        { product_name: "Aashirvaad Atta", quantity: 1, price: 240 },
+                        { product_name: "Tata Salt", quantity: 2, price: 25 }
+                    ]
+                });
+            }
+            return result;
+        }
+    }));
+});
+</script>
+</body>
+</html>

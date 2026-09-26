@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LocalLift — Discover Local. Support Local.</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons & Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        [x-cloak] { display: none !important; }
+        
+        .leaflet-container {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .user-gps-dot {
+            width: 22px;
+            height: 22px;
+            background: #3b82f6;
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.35), 0 4px 10px rgba(0,0,0,0.3);
+            animation: pulse-gps 2s infinite;
+        }
+
+        @keyframes pulse-gps {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+            70% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .shop-map-pin {
+            width: 36px;
+            height: 36px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .shop-map-pin i {
+            transform: rotate(45deg);
+            font-size: 14px;
+            color: white;
+        }
+        .shop-map-pin:hover {
+            transform: rotate(-45deg) scale(1.15);
+        }
+    </style>
+</head>
+
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4 text-gray-900" x-data="localLiftApp()" x-init="init()" x-cloak>
+
+    <!-- MOBILE CONTAINER -->
+    <div class="w-full max-w-[430px] h-[100dvh] sm:h-[880px] bg-white sm:rounded-[36px] shadow-2xl overflow-hidden relative flex flex-col border border-gray-100">
+
+        <!-- GLOBAL FLOATING TOAST -->
+        <div x-show="toast.show" 
+             x-transition:enter="transition ease-out duration-300 transform"
+             x-transition:enter-start="opacity-0 -translate-y-8"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-8"
+             class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] w-[90%] max-w-[380px] px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-bold backdrop-blur-md"
+             :class="{
+                 'bg-gray-900/95 text-white border border-gray-700': toast.type === 'info',
+                 'bg-emerald-600/95 text-white border border-emerald-400': toast.type === 'success',
+                 'bg-rose-600/95 text-white border border-rose-400': toast.type === 'error'
+             }">
+            <i class="fa-solid" :class="{
+                'fa-circle-info text-indigo-400': toast.type === 'info',
+                'fa-circle-check text-emerald-200': toast.type === 'success',
+                'fa-circle-exclamation text-rose-200': toast.type === 'error'
+            }"></i>
+            <span class="flex-1" x-text="toast.message"></span>
+        </div>
+
+        <!-- ================= SCREEN 1: SPLASH ================= -->
+        <div x-show="screen === 'splash'" 
+             x-transition.opacity.duration.400ms
+             class="absolute inset-0 z-50 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 flex flex-col items-center justify-between p-8 text-white text-center">
+            <div class="w-full flex justify-end">
+                <span class="text-xs bg-white/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest text-indigo-100">v2.5 Pro</span>
+            </div>
+            
+            <div class="flex flex-col items-center my-auto">
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center mb-6 shadow-indigo-900/50 transform rotate-3">
+                    <i class="fa-solid fa-leaf text-indigo-600 text-5xl"></i>
+                </div>
+                <h1 class="text-4xl font-black tracking-tight mb-2">LocalLift</h1>
+                <p class="text-indigo-200 font-semibold text-sm max-w-[240px] leading-relaxed">Discover Local. Support Local. Grow Together.</p>
+                
+                <div class="mt-10 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-white animate-ping"></div>
+                    <span class="text-xs text-indigo-200 font-medium">Connecting nearby shops...</span>
+                </div>
+            </div>
+
+            <div class="text-xs text-indigo-300 font-medium">
+                Hyperlocal Community Platform
+            </div>
+        </div>
+
+        <!-- ================= SCREEN 2: AUTH / SIGN IN ================= -->
+        <div x-show="screen === 'login'" 
+             x-transition.opacity.duration.300ms
+             class="absolute inset-0 z-40 bg-white flex flex-col justify-between p-6 overflow-y-auto hide-scroll">
+            
+            <div class="pt-6">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <i class="fa-solid fa-leaf text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-900 tracking-tight">LocalLift</h2>
+                        <p class="text-xs font-semibold text-gray-400">Hyperlocal Marketplace</p>
+                    </div>
+                </div>
+
+                <h3 class="text-3xl font-extrabold text-gray-900 mb-2">Welcome! 👋</h3>
+                <p class="text-sm text-gray-500 mb-8 font-medium">Sign in to explore verified shops and products around you.</p>
+
+                <!-- Mode: Options -->
+                <div x-show="loginMode === 'options'" class="flex flex-col gap-3">
+                    <button @click="loginWithGoogle()" class="w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-4 rounded-2xl border-2 border-gray-100 flex items-center justify-center gap-3 active:scale-95 transition shadow-sm">
+                        <i class="fa-brands fa-google text-red-500 text-lg"></i>
+                        Continue with Google
+                    </button>
+
+                    <button @click="loginMode = 'phone'" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition shadow-lg shadow-indigo-200">
+                        <i class="fa-solid fa-mobile-screen-button text-lg"></i>
+                        Phone Number (Instant OTP)
+                    </button>
+
+                    <button @click="loginMode = 'email'" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition">
+                        <i class="fa-solid fa-envelope text-lg"></i>
+                        Continue with Email
+                    </button>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+                        <span class="text-xs text-gray-400">Are you a shop owner?</span>
+                        <a href="/vendor" class="block mt-2 text-indigo-600 text-xs font-bold hover:underline">
+                            Open Vendor Partner Portal →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mode: Phone OTP -->
+                <div x-show="loginMode === 'phone'" class="flex flex-col gap-4">
+                    <button @click="loginMode = 'options'" class="self-start text-xs font-bold text-gray-500 hover:text-gray-800 flex items-center gap-1.5 py-1">
+                        <i class="fa-solid fa-arrow-left"></i> Change Method
+                    </button>
+
+                    <div x-show="!otpSent" class="flex flex-col gap-4 mt-2">
+                        <h4 class="text-xl font-extrabold text-gray-800">Enter Mobile Number</h4>
+                        <div class="flex gap-2">
+                            <div class="bg-gray-100 px-4 py-3.5 rounded-2xl font-bold text-gray-700 flex items-center">+91</div>
+                            <input type="tel" x-model="loginForm.phone" maxlength="10" placeholder="9876543210" class="flex-1 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3.5 font-bold text-gray-800 text-lg focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                        <button @click="sendOtp()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition">
+                            Get Verification Code
+                        </button>
+                    </div>
+
+                    <div x-show="otpSent" class="flex flex-col gap-4 mt-2">
+                        <h4 class="text-xl font-extrabold text-gray-800">Verify Code</h4>
+                        <p class="text-xs text-gray-500 font-medium">Enter the 4-digit code sent to +91 <span x-text="loginForm.phone" class="font-bold text-gray-800"></span></p>
+
+                        <!-- Demo hint -->
+                        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-2xl flex items-center gap-2.5 text-xs font-bold">
+                            <i class="fa-solid fa-comment-dots text-emerald-600 text-base"></i>
+                            <span>SMS Received: Your LocalLift OTP is <strong>1234</strong></span>
+                        </div>
+
+                        <div class="flex justify-between gap-3 my-2">
+                            <input type="text" maxlength="1" x-model="loginForm.otp1" id="otp-1" @input="if($el.value) document.getElementById('otp-2').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+                            <input type="text" maxlength="1" x-model="loginForm.otp2" id="otp-2" @input="if($el.value) document.getElementById('otp-3').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+                            <input type="text" maxlength="1" x-model="loginForm.otp3" id="otp-3" @input="if($el.value) document.getElementById('otp-4').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+                            <input type="text" maxlength="1" x-model="loginForm.otp4" id="otp-4" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+                        </div>
+
+                        <button @click="verifyOtp()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition">
+                            Verify & Proceed
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mode: Email -->
+                <div x-show="loginMode === 'email'" class="flex flex-col gap-4">
+                    <button @click="loginMode = 'options'" class="self-start text-xs font-bold text-gray-500 hover:text-gray-800 flex items-center gap-1.5 py-1">
+                        <i class="fa-solid fa-arrow-left"></i> Change Method
+                    </button>
+
+                    <div class="flex flex-col gap-3 mt-2">
+                        <div>
+                            <label class="text-xs font-bold text-gray-600 block mb-1">Email Address</label>
+                            <input type="email" x-model="loginForm.email" placeholder="customer@locallift.com" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-indigo-600 focus:bg-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-600 block mb-1">Password</label>
+                            <input type="password" x-model="loginForm.password" placeholder="••••••••" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-indigo-600 focus:bg-white focus:outline-none">
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-xs">
+                            <button @click="loginForm.email = 'customer@locallift.com'; loginForm.password = 'password123'" class="text-indigo-600 font-bold hover:underline">
+                                Autofill Demo Account
+                            </button>
+                        </div>
+
+                        <button @click="loginWithEmail()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition mt-2">
+                            Sign In
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-center text-[11px] text-gray-400 font-medium py-4">
+                By continuing, you accept LocalLift's Terms of Service & Privacy Policy.
+            </p>
+        </div>
+
+        <!-- ================= SCREEN 3: LOCATION PERMISSION ================= -->
+        <div x-show="screen === 'location'" 
+             x-transition.opacity.duration.300ms
+             class="absolute inset-0 z-30 bg-white flex flex-col justify-between p-6 text-center">
+            
+            <div class="pt-8 flex flex-col items-center">
+                <div class="w-24 h-24 bg-indigo-50 border-4 border-indigo-100 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-indigo-100">
+                    <i class="fa-solid fa-location-dot text-4xl text-indigo-600 animate-bounce"></i>
+                </div>
+
+                <h2 class="text-3xl font-black text-gray-900 mb-2">Where are you?</h2>
+                <p class="text-sm text-gray-500 font-medium max-w-[280px] leading-relaxed mb-8">
+                    Allow LocalLift to use your live location to discover verified local vendors, bakeries & shops right next to you.
+                </p>
+
+                <div class="w-full flex flex-col gap-3">
+                    <button @click="requestLiveLocation()" class="w-full bg-indigo-600 text-white font-extrabold text-base py-4 px-5 rounded-2xl active:scale-95 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-location-crosshairs text-lg"></i>
+                        <span x-text="locatingGps ? 'Locating GPS...' : 'Use Current GPS Location'"></span>
+                    </button>
+
+                    <button @click="showManualSearch = !showManualSearch" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3.5 px-5 rounded-2xl active:scale-95 transition">
+                        Enter Location Manually
+                    </button>
+                </div>
+
+                <!-- Manual Location Input -->
+                <div x-show="showManualSearch" x-transition class="w-full mt-4 flex gap-2">
+                    <input type="text" x-model="manualQuery" placeholder="e.g. Ludhiana, Connaught Place, Mumbai" class="flex-1 bg-gray-50 border-2 border-gray-200 p-3.5 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600">
+                    <button @click="geocodeManualLocation()" class="bg-indigo-600 text-white px-5 rounded-2xl font-bold shadow-md active:scale-95">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100/80 text-left flex items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-indigo-600 text-xl"></i>
+                <p class="text-[11px] text-gray-600 font-medium">Your exact GPS coordinates are only used locally to calculate nearby walking and driving distances.</p>
+            </div>
+        </div>
+
+        <!-- ================= SCREEN 4: INTERACTIVE MAP CONFIRM ================= -->
+        <div x-show="screen === 'map_confirm'" 
+             x-transition.opacity.duration.300ms
+             class="absolute inset-0 z-40 bg-white flex flex-col">
+            
+            <!-- Top bar -->
+            <div class="absolute top-4 left-4 right-4 z-[400] flex justify-between items-center">
+                <button @click="screen = 'location'" class="w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold active:scale-95 border border-gray-100">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-md text-xs font-extrabold text-indigo-700 border border-indigo-50">
+                    <i class="fa-solid fa-map-pin mr-1 text-indigo-600"></i> Drag pin to adjust
+                </div>
+                <div class="w-11"></div>
+            </div>
+
+            <!-- Leaflet Map Element -->
+            <div id="confirmMapEl" class="flex-1 w-full bg-gray-200"></div>
+
+            <!-- Bottom Confirmation Card -->
+            <div class="bg-white rounded-t-[32px] shadow-[0_-10px_35px_rgba(0,0,0,0.15)] p-6 z-[400] flex flex-col">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"></div>
+                
+                <div class="flex items-start gap-4 mb-5">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-location-dot text-xl"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-extrabold text-gray-900 text-base line-clamp-1" x-text="confirmLoc.title || 'Selected Area'"></h4>
+                        <p class="text-xs text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Fetching exact street address...'"></p>
+                    </div>
+                </div>
+
+                <button @click="applyConfirmedLocation()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-base py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+                    <span>Confirm & Discover Shops</span>
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= SCREEN 5: MAIN HYPERLOCAL APP ================= -->
+        <div x-show="screen === 'main'" class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
+
+            <!-- HEADER -->
+            <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-700 text-white pt-5 pb-5 px-5 rounded-b-[28px] shadow-lg flex-shrink-0 z-20">
+                <!-- Location + Bell -->
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2.5 cursor-pointer" @click="screen = 'location'">
+                        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                            <i class="fa-solid fa-location-dot text-indigo-200 text-base"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-indigo-200 font-bold uppercase tracking-wider flex items-center gap-1">
+                                Delivering to <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                            </div>
+                            <div class="font-extrabold text-sm text-white line-clamp-1 max-w-[210px]" x-text="userAddr || 'Current Location'"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center active:scale-95 text-white" @click="showToast('You have 2 new local discount coupons!', 'info')">
+                            <i class="fa-regular fa-bell text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Search Bar -->
+                <div class="relative bg-white rounded-2xl shadow-md flex items-center px-4 py-2.5 text-gray-800">
+                    <i class="fa-solid fa-magnifying-glass text-indigo-500 mr-3 text-sm"></i>
+                    <input type="text" 
+                           placeholder="Search bakery, cake, kurti, medicine, groce..." 
+                           x-model="searchQuery" 
+                           @focus="tab = 'explore'"
+                           @input="executeSearch()"
+                           class="w-full bg-transparent text-sm font-bold placeholder-gray-400 focus:outline-none">
+                    <button x-show="searchQuery" @click="searchQuery = ''; executeSearch()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB CONTENT CONTAINER -->
+            <div class="flex-1 overflow-y-auto hide-scroll relative">
+
+                <!-- ── TAB 1: HOME ────────────────────────────────── -->
+                <div x-show="tab === 'home'" class="flex flex-col gap-6 py-4 pb-28">
+                    
+                    <!-- OFFERS CAROUSEL -->
+                    <div class="px-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-black text-gray-900 text-base flex items-center gap-1.5">
+                                <span>🔥 Local Offers Near You</span>
+                            </h3>
+                            <span class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide">Live Deals</span>
+                        </div>
+
+                        <div class="flex gap-3.5 overflow-x-auto hide-scroll snap-x pb-2">
+                            <template x-for="offer in offers" :key="offer.offer_id">
+                                <div class="snap-center shrink-0 w-[270px] h-[135px] rounded-3xl p-4 relative overflow-hidden text-white flex flex-col justify-between shadow-md"
+                                     :class="getOfferGradient(offer.offer_id)">
+                                    
+                                    <div class="relative z-10">
+                                        <span class="text-[10px] font-extrabold uppercase tracking-wider bg-black/25 px-2.5 py-0.5 rounded-full backdrop-blur-sm inline-block mb-1" x-text="offer.business_name"></span>
+                                        <h4 class="text-xl font-black leading-tight line-clamp-1" x-text="offer.title"></h4>
+                                    </div>
+
+                                    <div class="relative z-10 flex justify-between items-center">
+                                        <span class="text-xs font-black bg-white text-gray-900 px-3 py-1 rounded-xl shadow-sm" x-text="offer.discount"></span>
+                                        <span class="text-[11px] font-bold text-white/90">Claim at Shop →</span>
+                                    </div>
+
+                                    <i class="fa-solid fa-tags absolute -right-3 -bottom-3 text-7xl text-white/15"></i>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- 16 CATEGORIES GRID -->
+                    <div class="px-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-black text-gray-900 text-base">Explore Categories</h3>
+                            <button @click="selectedCategory = ''; tab = 'explore'; executeSearch()" class="text-xs font-bold text-indigo-600">See All (16)</button>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-3">
+                            <template x-for="cat in categoryList" :key="cat.name">
+                                <button @click="filterByCategory(cat.name)" 
+                                        class="flex flex-col items-center gap-1.5 p-2 rounded-2xl transition active:scale-95 group"
+                                        :class="selectedCategory === cat.name ? 'bg-indigo-50 border-2 border-indigo-600' : 'bg-white border border-gray-100 shadow-sm'">
+                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-lg shadow-sm" :class="cat.bgColor + ' ' + cat.textColor">
+                                        <i class="fa-solid" :class="cat.icon"></i>
+                                    </div>
+                                    <span class="text-[11px] font-extrabold text-gray-700 text-center leading-tight line-clamp-1" x-text="cat.name"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- NEARBY SHOPS LIST -->
+                    <div class="px-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="font-black text-gray-900 text-base">Shops Near You</h3>
+                                <p class="text-xs text-gray-400 font-semibold" x-text="vendors.length + ' verified local businesses in radius'"></p>
+                            </div>
+                            <button @click="tab = 'mapview'; renderMainMap()" class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 active:scale-95">
+                                <i class="fa-solid fa-map-location-dot"></i> View on Map
+                            </button>
+                        </div>
+
+                        <!-- Shop Cards -->
+                        <div class="flex flex-col gap-3.5">
+                            <template x-for="vendor in vendors" :key="vendor.vendor_id">
+                                <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-gray-100 flex gap-3.5 cursor-pointer hover:border-indigo-200 active:scale-[0.98] transition"
+                                     @click="openShopProfile(vendor)">
+                                    
+                                    <!-- Photo -->
+                                    <div class="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0 relative">
+                                        <img :src="vendor.image" class="w-full h-full object-cover">
+                                        <div class="absolute top-1.5 left-1.5 bg-white/95 backdrop-blur text-[10px] font-black px-1.5 py-0.5 rounded-lg text-gray-900 flex items-center gap-1 shadow-sm">
+                                            <i class="fa-solid fa-star text-yellow-500 text-[9px]"></i>
+                                            <span x-text="vendor.rating"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Details -->
+                                    <div class="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                                        <div>
+                                            <div class="flex justify-between items-start">
+                                                <h4 class="font-extrabold text-gray-900 text-base leading-tight truncate" x-text="vendor.business_name"></h4>
+                                                <span class="text-[9px] font-black px-2 py-0.5 rounded-md uppercase"
+                                                      :class="vendor.is_open ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
+                                                      x-text="vendor.is_open ? 'OPEN' : 'CLOSED'"></span>
+                                            </div>
+                                            
+                                            <p class="text-xs text-indigo-600 font-bold mt-0.5 flex items-center gap-1">
+                                                <i class="fa-solid fa-tag text-[10px]"></i>
+                                                <span x-text="vendor.category"></span>
+                                            </p>
+                                        </div>
+
+                                        <p class="text-xs text-gray-400 font-medium line-clamp-1" x-text="vendor.description"></p>
+
+                                        <div class="flex items-center justify-between pt-1 border-t border-gray-50">
+                                            <span class="text-xs font-bold text-gray-600 flex items-center gap-1">
+                                                <i class="fa-solid fa-person-biking text-indigo-500"></i>
+                                                <span x-text="vendor.distance_km + ' km away'"></span>
+                                            </span>
+                                            
+                                            <span class="text-xs font-bold text-indigo-600 hover:underline">
+                                                View Menu →
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── TAB 2: EXPLORE / SEARCH ───────────────────── -->
+                <div x-show="tab === 'explore'" class="p-5 flex flex-col gap-4 pb-28">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-black text-gray-900 text-xl">Search & Explore</h3>
+                        <span class="text-xs font-bold text-gray-400" x-text="(searchResults.vendors.length + searchResults.products.length) + ' Results'"></span>
+                    </div>
+
+                    <!-- Category Pills -->
+                    <div class="flex gap-2 overflow-x-auto hide-scroll pb-1">
+                        <button class="px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition"
+                                :class="selectedCategory === '' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+                                @click="selectedCategory = ''; executeSearch()">All</button>
+                        
+                        <template x-for="cat in categoryList" :key="cat.name">
+                            <button class="px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition flex items-center gap-1.5"
+                                    :class="selectedCategory === cat.name ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+                                    @click="selectedCategory = cat.name; executeSearch()">
+                                <i class="fa-solid" :class="cat.icon"></i>
+                                <span x-text="cat.name"></span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Matching Shops -->
+                    <div x-show="searchResults.vendors.length > 0">
+                        <h4 class="font-bold text-gray-700 text-sm mb-2.5">Matching Shops</h4>
+                        <div class="flex flex-col gap-2.5">
+                            <template x-for="v in searchResults.vendors" :key="v.vendor_id">
+                                <div class="bg-white rounded-2xl p-3 border border-gray-100 flex items-center gap-3 cursor-pointer shadow-sm active:scale-[0.99]"
+                                     @click="openShopProfile(v)">
+                                    <img :src="v.image" class="w-14 h-14 rounded-xl object-cover shrink-0">
+                                    <div class="flex-1 min-w-0">
+                                        <h5 class="font-bold text-gray-900 text-sm truncate" x-text="v.business_name"></h5>
+                                        <p class="text-xs text-gray-400" x-text="v.category + ' • ' + v.distance_km + ' km'"></p>
+                                    </div>
+                                    <div class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">View</div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Matching Products -->
+                    <div x-show="searchResults.products.length > 0">
+                        <h4 class="font-bold text-gray-700 text-sm mb-2.5">Matching Products</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <template x-for="p in searchResults.products" :key="p.product_id">
+                                <div class="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col justify-between shadow-sm">
+                                    <img :src="p.image" class="w-full h-24 rounded-xl object-cover mb-2">
+                                    <div>
+                                        <h5 class="font-bold text-gray-900 text-xs line-clamp-1" x-text="p.product_name"></h5>
+                                        <p class="text-[10px] text-gray-400 mb-2 truncate" x-text="p.business_name"></p>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2 border-t border-gray-50">
+                                        <span class="font-black text-indigo-600 text-sm">₹<span x-text="p.price"></span></span>
+                                        <button @click="addToCartDirect(p)" class="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold flex items-center justify-center transition">
+                                            <i class="fa-solid fa-plus text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div x-show="searchResults.vendors.length === 0 && searchResults.products.length === 0" 
+                         class="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+                        <i class="fa-solid fa-basket-shopping text-5xl text-gray-200 mb-3"></i>
+                        <p class="font-bold text-gray-600">No items found</p>
+                        <p class="text-xs mt-1">Try typing cake, rice, medicines, kurta, shoes or burger.</p>
+                    </div>
+                </div>
+
+                <!-- ── TAB 3: FULL INTERACTIVE MAP ───────────────── -->
+                <div x-show="tab === 'mapview'" class="absolute inset-0 z-10 flex flex-col">
+                    <div id="fullMainMap" class="w-full h-full bg-slate-100"></div>
+
+                    <!-- Quick Floating shop card when marker tapped -->
+                    <div x-show="activeMapShop" 
+                         x-transition
+                         class="absolute bottom-20 left-4 right-4 bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-2xl border border-indigo-100 flex items-center gap-3.5 z-[500]">
+                        <img :src="activeMapShop?.image" class="w-16 h-16 rounded-2xl object-cover shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-extrabold text-gray-900 text-sm truncate" x-text="activeMapShop?.business_name"></h4>
+                            <p class="text-xs text-indigo-600 font-bold" x-text="activeMapShop?.category + ' • ' + activeMapShop?.distance_km + ' km'"></p>
+                            <p class="text-xs text-gray-400 truncate" x-text="activeMapShop?.address"></p>
+                        </div>
+                        <button @click="openShopProfile(activeMapShop)" class="bg-indigo-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-md active:scale-95">
+                            Open
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── TAB 4: ORDERS ─────────────────────────────── -->
+                <div x-show="tab === 'orders'" class="p-5 flex flex-col gap-4 pb-28">
+                    <h3 class="font-black text-gray-900 text-2xl">My Orders</h3>
+
+                    <div x-show="orders.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+                        <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400 mb-4">
+                            <i class="fa-solid fa-receipt text-4xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800 text-lg">No orders yet</h4>
+                        <p class="text-xs text-gray-400 max-w-[220px] mt-1 mb-6">Discover local shops and order delicious baked goods, groceries or medicines!</p>
+                        <button @click="tab = 'home'" class="bg-indigo-600 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95">
+                            Start Shopping Local
+                        </button>
+                    </div>
+
+                    <div x-show="orders.length > 0" class="flex flex-col gap-3.5">
+                        <template x-for="order in orders" :key="order.order_id || order.id">
+                            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col gap-3">
+                                <div class="flex justify-between items-start border-b border-gray-50 pb-2.5">
+                                    <div>
+                                        <h4 class="font-extrabold text-gray-900 text-base" x-text="order.business_name || order.vendorName"></h4>
+                                        <span class="text-[11px] text-gray-400 font-semibold" x-text="'Order #' + (order.order_id || order.id)"></span>
+                                    </div>
+                                    <span class="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700">
+                                        Confirmed & Preparing
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-col gap-1 text-xs text-gray-600">
+                                    <template x-for="item in (order.items || [])" :key="item.product_name || item.name">
+                                        <div class="flex justify-between">
+                                            <span><span x-text="item.quantity"></span>x <span x-text="item.product_name || item.name"></span></span>
+                                            <span class="font-bold">₹<span x-text="(item.price * item.quantity)"></span></span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-50 text-sm">
+                                    <span class="text-xs text-gray-400 font-bold">Total Paid (Demo)</span>
+                                    <span class="font-black text-gray-900 text-base">₹<span x-text="order.total_amount || order.total"></span></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ── TAB 5: PROFILE ────────────────────────────── -->
+                <div x-show="tab === 'profile'" class="p-5 flex flex-col gap-5 pb-28">
+                    <h3 class="font-black text-gray-900 text-2xl">My Account</h3>
+
+                    <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-5 shadow-lg flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-black text-white">
+                            <span x-text="(currentUser.name || 'U')[0].toUpperCase()"></span>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-lg text-white" x-text="currentUser.name || 'Local Customer'"></h4>
+                            <p class="text-xs text-indigo-100 font-semibold" x-text="currentUser.phone || currentUser.email || '+91 9876543210'"></p>
+                            <span class="inline-block mt-1 text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Verified Local User</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm flex flex-col divide-y divide-gray-50">
+                        <button @click="screen = 'location'" class="p-4 flex items-center justify-between text-left hover:bg-gray-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-location-dot text-indigo-600 text-lg w-6"></i>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">Change Delivery Location</div>
+                                    <div class="text-xs text-gray-400" x-text="userAddr || 'Not Set'"></div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
+                        </button>
+
+                        <a href="/vendor" class="p-4 flex items-center justify-between text-left hover:bg-gray-50">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-store text-purple-600 text-lg w-6"></i>
+                                <div>
+                                    <div class="font-bold text-sm text-gray-800">Vendor Partner Dashboard</div>
+                                    <div class="text-xs text-gray-400">Manage products, orders & active offers</div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-gray-300"></i>
+                        </a>
+
+                        <button @click="logout()" class="p-4 flex items-center justify-between text-left hover:bg-rose-50 text-rose-600">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-arrow-right-from-bracket text-lg w-6"></i>
+                                <span class="font-bold text-sm">Sign Out</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-xs text-rose-300"></i>
+                        </button>
+                    </div>
+
+                    <!-- App Mission Statement -->
+                    <div class="bg-indigo-50/70 rounded-3xl p-5 border border-indigo-100 text-center mt-4">
+                        <i class="fa-solid fa-heart text-indigo-600 text-2xl mb-2"></i>
+                        <h5 class="font-black text-gray-900 text-sm">"When local businesses grow, communities grow."</h5>
+                        <p class="text-xs text-gray-500 mt-1 font-medium leading-relaxed">LocalLift empowers small local vendors with digital visibility without charging predatory commissions.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FLOATING VIEW CART BAR (WHEN CART > 0) -->
+            <div x-show="cartTotalCount > 0" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-10"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="absolute bottom-20 left-4 right-4 z-30">
+                <button @click="cartDrawerOpen = true" 
+                        class="w-full bg-gray-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center active:scale-[0.98] transition border border-gray-700">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xs text-white" x-text="cartTotalCount"></div>
+                        <div class="text-left">
+                            <div class="font-extrabold text-sm">View Cart</div>
+                            <div class="text-[11px] text-gray-300" x-text="cartVendorName"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 font-black text-base">
+                        <span>₹<span x-text="cartTotalAmount"></span></span>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                </button>
+            </div>
+
+            <!-- BOTTOM NAVIGATION BAR -->
+            <nav class="bg-white border-t border-gray-100 px-3 py-2 flex justify-around items-center z-20 flex-shrink-0">
+                <button @click="tab = 'home'" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
+                        :class="tab === 'home' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+                    <i class="fa-solid fa-house text-lg mb-0.5"></i>
+                    <span class="text-[10px]">Home</span>
+                </button>
+
+                <button @click="tab = 'explore'; executeSearch()" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
+                        :class="tab === 'explore' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+                    <i class="fa-solid fa-compass text-lg mb-0.5"></i>
+                    <span class="text-[10px]">Explore</span>
+                </button>
+
+                <button @click="tab = 'mapview'; renderMainMap()" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
+                        :class="tab === 'mapview' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+                    <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+                    <span class="text-[10px]">Map</span>
+                </button>
+
+                <button @click="tab = 'orders'" class="flex flex-col items-center py-1 px-3 rounded-xl transition relative"
+                        :class="tab === 'orders' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+                    <i class="fa-solid fa-receipt text-lg mb-0.5"></i>
+                    <span class="text-[10px]">Orders</span>
+                    <span x-show="orders.length > 0" class="absolute top-1 right-3 w-2 h-2 rounded-full bg-indigo-600"></span>
+                </button>
+
+                <button @click="tab = 'profile'" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
+                        :class="tab === 'profile' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+                    <i class="fa-solid fa-user text-lg mb-0.5"></i>
+                    <span class="text-[10px]">Profile</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- ================= FULL SHOP PROFILE MODAL ================= -->
+        <div x-show="shopModalOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-full"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-full"
+             class="fixed inset-0 z-50 bg-white flex flex-col max-w-[430px] mx-auto overflow-hidden">
+            
+            <!-- Modal Header / Hero -->
+            <div class="relative h-60 w-full bg-gray-900 shrink-0">
+                <img :src="activeShop?.image" class="w-full h-full object-cover opacity-85">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                
+                <button @click="shopModalOpen = false" class="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur text-gray-900 flex items-center justify-center font-bold shadow-lg active:scale-95">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <!-- Shop info over image -->
+                <div class="absolute bottom-4 left-4 right-4 text-white">
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-indigo-600 px-2.5 py-0.5 rounded-md inline-block mb-1" x-text="activeShop?.category"></span>
+                    <h3 class="text-2xl font-black leading-tight" x-text="activeShop?.business_name"></h3>
+                    <div class="flex items-center gap-3 text-xs font-semibold mt-1 opacity-90">
+                        <span class="flex items-center gap-1 text-yellow-400"><i class="fa-solid fa-star"></i> <span x-text="activeShop?.rating"></span></span>
+                        <span>•</span>
+                        <span x-text="activeShop?.distance_km + ' km away'"></span>
+                        <span>•</span>
+                        <span class="text-emerald-400 font-bold" x-text="activeShop?.is_open ? 'Open Now' : 'Closed'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Call, Directions, Hours -->
+            <div class="flex justify-around items-center py-3 bg-gray-50 border-b border-gray-100 text-xs font-bold shrink-0">
+                <a :href="'tel:' + activeShop?.phone" class="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+                    <i class="fa-solid fa-phone"></i> Call Shop
+                </a>
+                <a :href="'https://www.google.com/maps/search/?api=1&query=' + activeShop?.latitude + ',' + activeShop?.longitude" target="_blank" class="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+                    <i class="fa-solid fa-diamond-turn-right"></i> Directions
+                </a>
+                <div class="text-gray-500 font-medium text-[11px] px-2">
+                    <i class="fa-regular fa-clock"></i> <span x-text="activeShop?.opening_hours + ' - ' + activeShop?.closing_time"></span>
+                </div>
+            </div>
+
+            <!-- Shop Tab Switcher: Products vs About -->
+            <div class="flex border-b border-gray-100 bg-white shrink-0">
+                <button @click="shopDetailTab = 'products'" 
+                        class="flex-1 py-3 text-center text-xs font-extrabold border-b-2 transition"
+                        :class="shopDetailTab === 'products' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'">
+                    Menu & Products (<span x-text="activeShopProducts.length"></span>)
+                </button>
+                <button @click="shopDetailTab = 'about'" 
+                        class="flex-1 py-3 text-center text-xs font-extrabold border-b-2 transition"
+                        :class="shopDetailTab === 'about' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'">
+                    About & Reviews
+                </button>
+            </div>
+
+            <!-- Shop Products Scroll Area -->
+            <div class="flex-1 overflow-y-auto hide-scroll p-4 pb-28">
+                
+                <!-- Products List -->
+                <div x-show="shopDetailTab === 'products'" class="flex flex-col gap-3.5">
+                    <template x-for="prod in activeShopProducts" :key="prod.product_id">
+                        <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex gap-3.5 items-center">
+                            <img :src="prod.image" class="w-20 h-20 rounded-xl object-cover shrink-0">
+                            
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-extrabold text-gray-900 text-sm leading-tight line-clamp-1" x-text="prod.product_name"></h4>
+                                <p class="text-[11px] text-gray-400 line-clamp-2 mt-0.5" x-text="prod.description"></p>
+                                <div class="font-black text-indigo-600 text-sm mt-1.5">₹<span x-text="prod.price"></span></div>
+                            </div>
+
+                            <!-- Add to Cart Controls -->
+                            <div class="shrink-0">
+                                <div x-show="getCartItemQty(prod.product_id) === 0">
+                                    <button @click="addItemToCart(prod, activeShop)" 
+                                            class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-extrabold text-xs px-3.5 py-2 rounded-xl border border-indigo-200 transition active:scale-95">
+                                        + ADD
+                                    </button>
+                                </div>
+
+                                <div x-show="getCartItemQty(prod.product_id) > 0" class="flex items-center gap-2 bg-indigo-600 text-white rounded-xl px-2 py-1 shadow-md">
+                                    <button @click="decrementCartQty(prod.product_id)" class="w-6 h-6 flex items-center justify-center font-bold active:scale-90">-</button>
+                                    <span class="font-black text-xs" x-text="getCartItemQty(prod.product_id)"></span>
+                                    <button @click="incrementCartQty(prod.product_id)" class="w-6 h-6 flex items-center justify-center font-bold active:scale-90">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- About & Reviews Tab -->
+                <div x-show="shopDetailTab === 'about'" class="flex flex-col gap-4 text-left">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <h4 class="font-bold text-gray-900 text-sm mb-1">About the Shop</h4>
+                        <p class="text-xs text-gray-600 leading-relaxed" x-text="activeShop?.description"></p>
+                        <div class="mt-3 text-xs text-gray-500">
+                            <strong>Address:</strong> <span x-text="activeShop?.address"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-sm mb-2.5">Customer Reviews</h4>
+                        <div class="flex flex-col gap-2.5">
+                            <template x-for="r in activeShopReviews" :key="r.review_id">
+                                <div class="bg-white p-3.5 rounded-2xl border border-gray-100">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-xs text-gray-900" x-text="r.user_name"></span>
+                                        <div class="text-yellow-500 text-[10px]"><i class="fa-solid fa-star"></i> <span x-text="r.rating"></span></div>
+                                    </div>
+                                    <p class="text-xs text-gray-600" x-text="r.comment"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Cart Footer inside Shop Modal -->
+            <div x-show="cartTotalCount > 0" class="p-4 bg-white border-t border-gray-100 shrink-0">
+                <button @click="cartDrawerOpen = true" class="w-full bg-indigo-600 text-white font-extrabold py-3.5 rounded-2xl shadow-xl flex justify-between px-5 items-center active:scale-95 transition">
+                    <span x-text="cartTotalCount + ' Items in Cart'"></span>
+                    <span>Proceed to Order ₹<span x-text="cartTotalAmount"></span> →</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= CART & CHECKOUT DRAWER ================= -->
+        <div x-show="cartDrawerOpen" 
+             x-transition.opacity
+             class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end max-w-[430px] mx-auto">
+            
+            <div class="bg-white rounded-t-[32px] p-6 max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                    <div>
+                        <h3 class="font-black text-gray-900 text-lg">Your Cart</h3>
+                        <p class="text-xs text-gray-400" x-text="cartVendorName"></p>
+                    </div>
+                    <button @click="cartDrawerOpen = false" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Items List -->
+                <div class="flex-1 overflow-y-auto hide-scroll flex flex-col gap-3 my-2">
+                    <template x-for="item in cartItems" :key="item.product_id">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-50">
+                            <div>
+                                <h5 class="font-bold text-sm text-gray-900" x-text="item.product_name"></h5>
+                                <span class="text-xs text-indigo-600 font-extrabold">₹<span x-text="item.price"></span> each</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl px-2 py-1 font-bold">
+                                <button @click="decrementCartQty(item.product_id)" class="w-6 h-6 flex items-center justify-center font-black">-</button>
+                                <span class="text-xs font-black" x-text="item.quantity"></span>
+                                <button @click="incrementCartQty(item.product_id)" class="w-6 h-6 flex items-center justify-center font-black">+</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Bill Details -->
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 my-3 flex flex-col gap-1.5 text-xs text-gray-600">
+                    <div class="flex justify-between">
+                        <span>Items Total</span>
+                        <span class="font-bold">₹<span x-text="cartTotalAmount"></span></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Local Delivery Partner Fee</span>
+                        <span class="font-bold text-emerald-600">FREE (Demo)</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-gray-200 text-sm font-black text-gray-900">
+                        <span>Grand Total</span>
+                        <span>₹<span x-text="cartTotalAmount"></span></span>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <input type="text" x-model="orderNote" placeholder="Instructions (e.g. Call before arrival)" class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold mb-4 focus:outline-none focus:border-indigo-600">
+
+                <button @click="submitOrder()" class="w-full bg-indigo-600 text-white font-extrabold py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition">
+                    Place Hyperlocal Request Now
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= ORDER SUCCESS MODAL ================= -->
+        <div x-show="orderSuccessOpen" 
+             x-transition.opacity
+             class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-6 max-w-[430px] mx-auto">
+            
+            <div class="bg-white rounded-[32px] p-6 text-center shadow-2xl flex flex-col items-center w-full max-w-[340px]">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-emerald-100">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                
+                <h3 class="text-2xl font-black text-gray-900 mb-1">Order Request Sent!</h3>
+                <p class="text-xs text-gray-500 font-medium mb-4">The shop owner has received your request and is packing your items right now.</p>
+                
+                <div class="bg-indigo-50 p-3 rounded-2xl w-full text-xs font-bold text-indigo-700 mb-5">
+                    Order ID: #<span x-text="lastOrderId"></span>
+                </div>
+
+                <button @click="orderSuccessOpen = false; shopModalOpen = false; cartDrawerOpen = false; tab = 'orders'" 
+                        class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95">
+                    View in My Orders
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- APP SCRIPT -->
+    <script>
+        function localLiftApp() {
+            return {
+                screen: 'splash', // splash, login, location, map_confirm, main
+                tab: 'home',      // home, explore, mapview, orders, profile
+                loginMode: 'options',
+                otpSent: false,
+                locatingGps: false,
+                showManualSearch: false,
+                manualQuery: '',
+                
+                // User & Location
+                currentUser: { name: 'Local Customer', phone: '+91 9876543210' },
+                userLat: 28.6139,
+                userLon: 77.2090,
+                userAddr: 'Detecting Location...',
+                confirmLoc: { title: '', fullAddress: '', lat: 28.6139, lon: 77.2090 },
+
+                // Data Stores
+                vendors: [],
+                offers: [],
+                orders: [],
+                searchResults: { vendors: [], products: [] },
+                selectedCategory: '',
+                searchQuery: '',
+
+                // Cart Store
+                cartItems: [],
+                cartVendorId: null,
+                cartVendorName: '',
+                cartDrawerOpen: false,
+                orderNote: '',
+                lastOrderId: '1001',
+                orderSuccessOpen: false,
+
+                // Shop Detail Modal
+                shopModalOpen: false,
+                shopDetailTab: 'products',
+                activeShop: null,
+                activeShopProducts: [],
+                activeShopReviews: [],
+
+                // Map instances
+                confirmMapObj: null,
+                confirmMarkerObj: null,
+                mainMapObj: null,
+                activeMapShop: null,
+
+                // 16 Full Categories
+                categoryList: [
+                    { name: 'Bakery', icon: 'fa-bread-slice', bgColor: 'bg-amber-100', textColor: 'text-amber-600' },
+                    { name: 'Grocery', icon: 'fa-basket-shopping', bgColor: 'bg-emerald-100', textColor: 'text-emerald-600' },
+                    { name: 'Restaurant', icon: 'fa-utensils', bgColor: 'bg-rose-100', textColor: 'text-rose-600' },
+                    { name: 'Clothing', icon: 'fa-shirt', bgColor: 'bg-pink-100', textColor: 'text-pink-600' },
+                    { name: 'Pharmacy', icon: 'fa-prescription-bottle-medical', bgColor: 'bg-blue-100', textColor: 'text-blue-600' },
+                    { name: 'Electronics', icon: 'fa-mobile-screen', bgColor: 'bg-cyan-100', textColor: 'text-cyan-600' },
+                    { name: 'Stationery', icon: 'fa-pen-nib', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600' },
+                    { name: 'Beauty', icon: 'fa-wand-magic-sparkles', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600' },
+                    { name: 'Hardware', icon: 'fa-hammer', bgColor: 'bg-stone-100', textColor: 'text-stone-600' },
+                    { name: 'Fruits & Vegetables', icon: 'fa-carrot', bgColor: 'bg-lime-100', textColor: 'text-lime-600' },
+                    { name: 'Footwear', icon: 'fa-shoe-prints', bgColor: 'bg-teal-100', textColor: 'text-teal-600' },
+                    { name: 'Flowers', icon: 'fa-seedling', bgColor: 'bg-red-100', textColor: 'text-red-500' },
+                    { name: 'Pet Supplies', icon: 'fa-paw', bgColor: 'bg-orange-100', textColor: 'text-orange-600' },
+                    { name: 'Home Services', icon: 'fa-screwdriver-wrench', bgColor: 'bg-sky-100', textColor: 'text-sky-600' },
+                    { name: 'Dairy & Sweets', icon: 'fa-cheese', bgColor: 'bg-yellow-100', textColor: 'text-yellow-600' },
+                    { name: 'Cafe & Snacks', icon: 'fa-mug-hot', bgColor: 'bg-purple-100', textColor: 'text-purple-600' },
+                ],
+
+                loginForm: { phone: '', email: '', password: '', otp1: '', otp2: '', otp3: '', otp4: '' },
+                toast: { show: false, message: '', type: 'info' },
+
+                // ── INIT ──────────────────────────────────────────────
+                async init() {
+                    // Register PWA service worker
+                    if ('serviceWorker' in navigator) {
+                        try { navigator.serviceWorker.register('/sw.js'); } catch(e){}
+                    }
+
+                    // Check saved session
+                    const savedUser = localStorage.getItem('locallift_user');
+                    const savedLoc = localStorage.getItem('locallift_location');
+
+                    if (savedUser) {
+                        try { this.currentUser = JSON.parse(savedUser); } catch(e){}
+                    }
+
+                    if (savedLoc) {
+                        try {
+                            const parsedLoc = JSON.parse(savedLoc);
+                            this.userLat = parsedLoc.lat;
+                            this.userLon = parsedLoc.lon;
+                            this.userAddr = parsedLoc.addr;
+                        } catch(e){}
+                    }
+
+                    // Load saved cart & orders
+                    const savedOrders = localStorage.getItem('locallift_orders');
+                    if (savedOrders) {
+                        try { this.orders = JSON.parse(savedOrders); } catch(e){}
+                    }
+
+                    setTimeout(async () => {
+                        if (savedUser && savedLoc) {
+                            await this.fetchHyperlocalData();
+                            this.screen = 'main';
+                        } else if (savedUser) {
+                            this.screen = 'location';
+                        } else {
+                            this.screen = 'login';
+                        }
+                    }, 1800);
+                },
+
+                showToast(msg, type='info') {
+                    this.toast.message = msg;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3200);
+                },
+
+                getOfferGradient(id) {
+                    const grads = [
+                        'bg-gradient-to-br from-indigo-600 to-purple-600',
+                        'bg-gradient-to-br from-emerald-600 to-teal-600',
+                        'bg-gradient-to-br from-rose-500 to-pink-600',
+                        'bg-gradient-to-br from-amber-500 to-orange-600',
+                        'bg-gradient-to-br from-cyan-600 to-blue-600'
+                    ];
+                    return grads[(id || 0) % grads.length];
+                },
+
+                // ── AUTHENTICATION ────────────────────────────────────
+                loginWithGoogle() {
+                    this.currentUser = { name: 'Google User', email: 'user@gmail.com', user_type: 'customer' };
+                    localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+                    this.showToast('Signed in successfully with Google! 🎉', 'success');
+                    this.screen = 'location';
+                },
+
+                sendOtp() {
+                    if (!this.loginForm.phone || this.loginForm.phone.length < 10) {
+                        this.showToast('Please enter a valid 10-digit mobile number', 'error');
+                        return;
+                    }
+                    this.otpSent = true;
+                    this.showToast('OTP code sent to your phone: 1234', 'info');
+                    setTimeout(() => { document.getElementById('otp-1')?.focus(); }, 200);
+                },
+
+                verifyOtp() {
+                    const enteredOtp = `${this.loginForm.otp1}${this.loginForm.otp2}${this.loginForm.otp3}${this.loginForm.otp4}`;
+                    if (enteredOtp === '1234' || enteredOtp.length === 4) {
+                        this.currentUser = { name: 'Customer (' + this.loginForm.phone.slice(-4) + ')', phone: '+91 ' + this.loginForm.phone, user_type: 'customer' };
+                        localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+                        this.showToast('Phone verified successfully! 🎉', 'success');
+                        this.screen = 'location';
+                    } else {
+                        this.showToast('Invalid OTP! Please enter 1234', 'error');
+                    }
+                },
+
+                async loginWithEmail() {
+                    const email = this.loginForm.email || 'customer@locallift.com';
+                    const password = this.loginForm.password || 'password123';
+                    
+                    try {
+                        const res = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.currentUser = data;
+                            localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+                            this.showToast('Welcome back, ' + data.name + '!', 'success');
+                            this.screen = 'location';
+                        } else {
+                            this.showToast(data.error || 'Invalid credentials', 'error');
+                        }
+                    } catch(e) {
+                        // Fallback demo
+                        this.currentUser = { name: 'Rahul Sharma', email: email, user_type: 'customer' };
+                        localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+                        this.screen = 'location';
+                    }
+                },
+
+                logout() {
+                    localStorage.removeItem('locallift_user');
+                    localStorage.removeItem('locallift_location');
+                    this.currentUser = { name: 'Local Customer' };
+                    this.screen = 'login';
+                    this.showToast('Signed out successfully', 'info');
+                },
+
+                // ── LOCATION & MAP PICKER ─────────────────────────────
+                requestLiveLocation() {
+                    if (!navigator.geolocation) {
+                        this.showToast('Geolocation not supported in browser', 'error');
+                        this.showManualSearch = true;
+                        return;
+                    }
+
+                    this.locatingGps = true;
+                    this.showToast('Requesting GPS location...', 'info');
+
+                    navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                            this.locatingGps = false;
+                            const lat = pos.coords.latitude;
+                            const lon = pos.coords.longitude;
+                            await this.openMapConfirmation(lat, lon);
+                        },
+                        (err) => {
+                            this.locatingGps = false;
+                            this.showToast('GPS access denied or timed out. Please enter area name.', 'error');
+                            this.showManualSearch = true;
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                },
+
+                async geocodeManualLocation() {
+                    if (!this.manualQuery || this.manualQuery.length < 2) {
+                        this.showToast('Please enter a location name', 'error');
+                        return;
+                    }
+
+                    this.showToast('Finding ' + this.manualQuery + '...', 'info');
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(this.manualQuery)}&limit=1&accept-language=en`);
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            const lat = parseFloat(data[0].lat);
+                            const lon = parseFloat(data[0].lon);
+                            await this.openMapConfirmation(lat, lon, data[0].display_name);
+                        } else {
+                            // Fallback
+                            await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery);
+                        }
+                    } catch(e) {
+                        await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery);
+                    }
+                },
+
+                async openMapConfirmation(lat, lon, knownTitle = '') {
+                    this.confirmLoc.lat = lat;
+                    this.confirmLoc.lon = lon;
+                    this.confirmLoc.title = knownTitle ? knownTitle.split(',')[0] : 'Locating...';
+                    this.confirmLoc.fullAddress = knownTitle || 'Fetching address details...';
+                    this.screen = 'map_confirm';
+
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const el = document.getElementById('confirmMapEl');
+                            if (!el) return;
+
+                            if (!this.confirmMapObj) {
+                                this.confirmMapObj = L.map('confirmMapEl', { zoomControl: false }).setView([lat, lon], 16);
+                                
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 19,
+                                    attribution: '© OpenStreetMap'
+                                }).addTo(this.confirmMapObj);
+
+                                const pinIcon = L.divIcon({
+                                    className: '',
+                                    html: '<div class="shop-map-pin bg-indigo-600"><i class="fa-solid fa-location-dot"></i></div>',
+                                    iconSize: [36, 36],
+                                    iconAnchor: [18, 36]
+                                });
+
+                                this.confirmMarkerObj = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(this.confirmMapObj);
+
+                                this.confirmMarkerObj.on('dragend', async (e) => {
+                                    const pos = e.target.getLatLng();
+                                    this.confirmLoc.lat = pos.lat;
+                                    this.confirmLoc.lon = pos.lng;
+                                    await this.reverseGeocode(pos.lat, pos.lng);
+                                });
+                            } else {
+                                this.confirmMapObj.setView([lat, lon], 16);
+                                this.confirmMarkerObj.setLatLng([lat, lon]);
+                                this.confirmMapObj.invalidateSize();
+                            }
+
+                            if (!knownTitle) {
+                                this.reverseGeocode(lat, lon);
+                            }
+                        }, 250);
+                    });
+                },
+
+                async reverseGeocode(lat, lon) {
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=en`);
+                        const data = await res.json();
+                        if (data && data.address) {
+                            const a = data.address;
+                            const road = a.road || a.suburb || a.neighbourhood || a.village || a.city_district || 'Local Area';
+                            const city = a.city || a.town || a.county || a.state || '';
+                            this.confirmLoc.title = road + (city ? ', ' + city : '');
+                            this.confirmLoc.fullAddress = data.display_name;
+                        } else {
+                            this.confirmLoc.title = 'Selected Location';
+                            this.confirmLoc.fullAddress = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                        }
+                    } catch(e) {
+                        this.confirmLoc.title = 'Selected Area';
+                        this.confirmLoc.fullAddress = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    }
+                },
+
+                async applyConfirmedLocation() {
+                    this.userLat = this.confirmLoc.lat;
+                    this.userLon = this.confirmLoc.lon;
+                    this.userAddr = this.confirmLoc.title || 'Selected Location';
+
+                    localStorage.setItem('locallift_location', JSON.stringify({
+                        lat: this.userLat,
+                        lon: this.userLon,
+                        addr: this.userAddr
+                    }));
+
+                    this.showToast('Location confirmed! Discovering nearby shops 🏪', 'success');
+                    await this.fetchHyperlocalData();
+                    this.screen = 'main';
+                    this.tab = 'home';
+                },
+
+                // ── DATA FETCHING ─────────────────────────────────────
+                async fetchHyperlocalData() {
+                    try {
+                        const [vRes, oRes] = await Promise.all([
+                            fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}`),
+                            fetch('/api/offers')
+                        ]);
+
+                        if (vRes.ok) {
+                            this.vendors = await vRes.json();
+                            this.searchResults.vendors = this.vendors;
+                        }
+                        if (oRes.ok) {
+                            this.offers = await oRes.json();
+                        }
+                    } catch(e) {
+                        console.error('Failed to load hyperlocal data:', e);
+                    }
+                },
+
+                filterByCategory(catName) {
+                    this.selectedCategory = catName;
+                    this.tab = 'explore';
+                    this.executeSearch();
+                },
+
+                async executeSearch() {
+                    const q = this.searchQuery.trim().toLowerCase();
+                    try {
+                        if (!q && !this.selectedCategory) {
+                            this.searchResults.vendors = this.vendors;
+                            this.searchResults.products = [];
+                            return;
+                        }
+
+                        let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}`;
+                        const res = await fetch(url);
+                        if (res.ok) {
+                            const data = await res.json();
+                            let vList = data.vendors || [];
+                            let pList = data.products || [];
+
+                            if (this.selectedCategory) {
+                                vList = vList.filter(v => v.category.toLowerCase() === this.selectedCategory.toLowerCase());
+                                pList = pList.filter(p => (p.category && p.category.toLowerCase().includes(this.selectedCategory.toLowerCase())) || (p.vendor_category && p.vendor_category.toLowerCase() === this.selectedCategory.toLowerCase()));
+                            }
+
+                            this.searchResults.vendors = vList;
+                            this.searchResults.products = pList;
+                        }
+                    } catch(e) {
+                        console.error('Search error:', e);
+                    }
+                },
+
+                // ── FULL MAP TAB ──────────────────────────────────────
+                renderMainMap() {
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const el = document.getElementById('fullMainMap');
+                            if (!el) return;
+
+                            if (!this.mainMapObj) {
+                                this.mainMapObj = L.map('fullMainMap', { zoomControl: false }).setView([this.userLat, this.userLon], 15);
+
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 19,
+                                    attribution: '© OpenStreetMap'
+                                }).addTo(this.mainMapObj);
+
+                                // User GPS Dot
+                                const userIcon = L.divIcon({
+                                    className: '',
+                                    html: '<div class="user-gps-dot"></div>',
+                                    iconSize: [22, 22],
+                                    iconAnchor: [11, 11]
+                                });
+                                L.marker([this.userLat, this.userLon], { icon: userIcon, zIndexOffset: 1000 }).addTo(this.mainMapObj);
+
+                                // Category Colors mapping
+                                const catColors = {
+                                    'Bakery': 'bg-amber-600',
+                                    'Grocery': 'bg-emerald-600',
+                                    'Restaurant': 'bg-rose-600',
+                                    'Clothing': 'bg-pink-600',
+                                    'Pharmacy': 'bg-blue-600',
+                                    'Electronics': 'bg-cyan-600',
+                                    'Stationery': 'bg-indigo-600',
+                                    'Beauty': 'bg-fuchsia-600'
+                                };
+
+                                // Add pins for all nearby shops
+                                this.vendors.forEach(v => {
+                                    const colorClass = catColors[v.category] || 'bg-indigo-600';
+                                    const pin = L.divIcon({
+                                        className: '',
+                                        html: `<div class="shop-map-pin ${colorClass}"><i class="fa-solid fa-store"></i></div>`,
+                                        iconSize: [36, 36],
+                                        iconAnchor: [18, 36]
+                                    });
+
+                                    const m = L.marker([v.latitude, v.longitude], { icon: pin }).addTo(this.mainMapObj);
+                                    m.on('click', () => {
+                                        this.activeMapShop = v;
+                                    });
+                                });
+                            } else {
+                                this.mainMapObj.setView([this.userLat, this.userLon], 15);
+                                this.mainMapObj.invalidateSize();
+                            }
+                        }, 250);
+                    });
+                },
+
+                // ── SHOP PROFILE & PRODUCTS ───────────────────────────
+                async openShopProfile(shop) {
+                    this.activeShop = shop;
+                    this.shopDetailTab = 'products';
+                    this.activeShopProducts = [];
+                    this.activeShopReviews = [];
+                    this.shopModalOpen = true;
+
+                    try {
+                        const res = await fetch(`/api/vendors/${shop.vendor_id || shop.id}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.activeShop = data.vendor || shop;
+                            this.activeShopProducts = data.products || [];
+                            this.activeShopReviews = data.reviews || [];
+                        }
+                    } catch(e) {
+                        console.error('Failed to load shop details:', e);
+                    }
+                },
+
+                // ── CART MANAGEMENT ───────────────────────────────────
+                getCartItemQty(prodId) {
+                    const item = this.cartItems.find(i => i.product_id === prodId);
+                    return item ? item.quantity : 0;
+                },
+
+                addItemToCart(prod, shop) {
+                    if (this.cartItems.length > 0 && this.cartVendorId !== (shop.vendor_id || shop.id)) {
+                        if (!confirm(`Your cart already has items from "${this.cartVendorName}". Clear cart to start ordering from "${shop.business_name}"?`)) {
+                            return;
+                        }
+                        this.cartItems = [];
+                    }
+
+                    this.cartVendorId = shop.vendor_id || shop.id;
+                    this.cartVendorName = shop.business_name;
+
+                    const existing = this.cartItems.find(i => i.product_id === prod.product_id);
+                    if (existing) {
+                        existing.quantity += 1;
+                    } else {
+                        this.cartItems.push({
+                            product_id: prod.product_id,
+                            product_name: prod.product_name,
+                            price: prod.price,
+                            image: prod.image,
+                            quantity: 1
+                        });
+                    }
+                    this.showToast(`${prod.product_name} added to cart!`, 'success');
+                },
+
+                addToCartDirect(prod) {
+                    const shop = this.vendors.find(v => v.vendor_id === prod.vendor_id) || { vendor_id: prod.vendor_id, business_name: prod.business_name || 'Local Shop' };
+                    this.addItemToCart(prod, shop);
+                },
+
+                incrementCartQty(prodId) {
+                    const item = this.cartItems.find(i => i.product_id === prodId);
+                    if (item) item.quantity += 1;
+                },
+
+                decrementCartQty(prodId) {
+                    const idx = this.cartItems.findIndex(i => i.product_id === prodId);
+                    if (idx > -1) {
+                        this.cartItems[idx].quantity -= 1;
+                        if (this.cartItems[idx].quantity <= 0) {
+                            this.cartItems.splice(idx, 1);
+                        }
+                    }
+                    if (this.cartItems.length === 0) {
+                        this.cartVendorId = null;
+                        this.cartVendorName = '';
+                        this.cartDrawerOpen = false;
+                    }
+                },
+
+                get cartTotalCount() {
+                    return this.cartItems.reduce((sum, i) => sum + i.quantity, 0);
+                },
+
+                get cartTotalAmount() {
+                    return this.cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                },
+
+                // ── ORDER PLACEMENT ───────────────────────────────────
+                async submitOrder() {
+                    if (this.cartItems.length === 0) return;
+
+                    const payload = {
+                        user_id: this.currentUser.user_id || 1,
+                        vendor_id: this.cartVendorId,
+                        total_amount: this.cartTotalAmount,
+                        notes: this.orderNote,
+                        items: this.cartItems
+                    };
+
+                    try {
+                        const res = await fetch('/api/orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await res.json();
+                        this.lastOrderId = data.order_id || Math.floor(1000 + Math.random() * 9000);
+
+                        // Save in local orders array
+                        const newOrder = {
+                            id: this.lastOrderId,
+                            order_id: this.lastOrderId,
+                            business_name: this.cartVendorName,
+                            total_amount: this.cartTotalAmount,
+                            status: 'confirmed',
+                            items: JSON.parse(JSON.stringify(this.cartItems))
+                        };
+
+                        this.orders.unshift(newOrder);
+                        localStorage.setItem('locallift_orders', JSON.stringify(this.orders));
+
+                        // Reset Cart
+                        this.cartItems = [];
+                        this.cartVendorId = null;
+                        this.cartVendorName = '';
+                        this.cartDrawerOpen = false;
+                        this.orderNote = '';
+                        this.orderSuccessOpen = true;
+
+                    } catch(e) {
+                        this.showToast('Order placed successfully (Demo mode)', 'success');
+                        this.cartItems = [];
+                        this.orderSuccessOpen = true;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
