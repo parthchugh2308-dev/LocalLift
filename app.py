@@ -137,29 +137,56 @@ CATEGORY_STORE_TEMPLATES = {
     'Cafe & Snacks': 'Kulhad Chai & Street Snacks'
 }
 
-def get_city_from_query(city_param, lat, lon):
-    c_lower = (city_param or '').lower()
-    for known_city in CITY_AREAS_DB.keys():
-        if known_city in c_lower:
-            return known_city
+def resolve_locality_and_areas(addr_str, city_str, lat, lon):
+    raw = (addr_str or city_str or '').strip()
+    raw_lower = raw.lower()
+    
+    # Check known cities with curated top markets
+    for city_key, known_areas in CITY_AREAS_DB.items():
+        if city_key in raw_lower:
+            return city_key.title(), known_areas
             
-    # Coords rough bounds
+    # Coords rough checks for major cities
     if 30.7 <= lat <= 31.1 and 75.6 <= lon <= 76.1:
-        return 'ludhiana'
+        return 'Ludhiana', CITY_AREAS_DB['ludhiana']
     elif 30.6 <= lat <= 30.85 and 76.6 <= lon <= 76.9:
-        return 'chandigarh'
+        return 'Chandigarh', CITY_AREAS_DB['chandigarh']
     elif 28.3 <= lat <= 28.9 and 76.8 <= lon <= 77.5:
-        return 'delhi'
+        return 'Delhi', CITY_AREAS_DB['delhi']
     elif 18.8 <= lat <= 19.3 and 72.7 <= lon <= 73.1:
-        return 'mumbai'
+        return 'Mumbai', CITY_AREAS_DB['mumbai']
     elif 31.2 <= lat <= 31.45 and 75.45 <= lon <= 75.75:
-        return 'jalandhar'
+        return 'Jalandhar', CITY_AREAS_DB['jalandhar']
     elif 31.55 <= lat <= 31.75 and 74.75 <= lon <= 75.0:
-        return 'amritsar'
+        return 'Amritsar', CITY_AREAS_DB['amritsar']
     elif 12.8 <= lat <= 13.15 and 77.45 <= lon <= 77.75:
-        return 'bangalore'
-        
-    return 'ludhiana' # default vibrant demo city
+        return 'Bangalore', CITY_AREAS_DB['bangalore']
+
+    # For any other city, town, or road in India/World (e.g. Anandpur Sahib, Nangal, Noida, Patiala, etc.)
+    parts = [p.strip() for p in raw.split(',') if p.strip()]
+    primary_name = parts[0] if len(parts) > 0 else "Local Area"
+    city_name = parts[1] if len(parts) > 1 else primary_name
+    
+    # Generate realistic neighborhood markets for this specific town/city
+    dynamic_areas = [
+        f"{primary_name} Main Market",
+        f"{primary_name} Market Square",
+        f"{primary_name} Bus Stand Road",
+        f"{primary_name} Civil Lines",
+        f"{primary_name} Railway Road",
+        f"{primary_name} College Road",
+        f"{primary_name} Commercial Complex",
+        f"{primary_name} GT Road Bazar",
+        f"{primary_name} City Center",
+        f"{primary_name} Bypass Road",
+        f"{primary_name} Clock Tower Bazar",
+        f"{primary_name} Model Town",
+        f"{primary_name} Shopping Plaza",
+        f"{primary_name} Gandhi Chowk",
+        f"{primary_name} Court Road",
+        f"{primary_name} East Bazar"
+    ]
+    return city_name, dynamic_areas
 
 @app.route('/api/vendors/nearby', methods=['GET'])
 def get_nearby():
@@ -169,9 +196,7 @@ def get_nearby():
     cat = request.args.get('category', '').strip()
     city_param = request.args.get('city', '').strip() or request.args.get('addr', '').strip()
 
-    detected_city_key = get_city_from_query(city_param, lat, lon)
-    area_list = CITY_AREAS_DB.get(detected_city_key, CITY_AREAS_DB['ludhiana'])
-    city_display = detected_city_key.title()
+    city_display, area_list = resolve_locality_and_areas(city_param, city_param, lat, lon)
 
     conn = get_db()
     q = "SELECT * FROM Vendors"
@@ -191,12 +216,16 @@ def get_nearby():
         
         # Localized store name and address
         vd['business_name'] = f"{local_area} {category_title}"
-        vd['address'] = f"Shop {idx+1}, Main Market, {local_area}, {city_display}"
+        vd['address'] = f"Shop {idx+1}, {local_area}, {city_display}"
         vd['city'] = city_display
 
-        # Calculate dynamic pinpoint coordinates around the user's current GPS location
-        lat_off = vd.get('lat_offset') or (0.0012 * (1 if idx % 2 == 0 else -1))
-        lon_off = vd.get('lon_offset') or (0.0014 * (1 if idx % 3 == 0 else -1))
+        # Calculate realistic tight micro-offsets around the user's location
+        angle = idx * 0.3926 # 16 evenly spaced angles
+        radius_km = 0.2 + (idx * 0.09) # distances from 0.2km to 1.6km
+        
+        # 1 deg lat ~ 111 km, 1 deg lon ~ 96 km
+        lat_off = (radius_km / 111.0) * math.cos(angle)
+        lon_off = (radius_km / 96.0) * math.sin(angle)
         
         projected_lat = round(lat + lat_off, 6)
         projected_lon = round(lon + lon_off, 6)
@@ -404,32 +433,54 @@ def update_order_status(oid):
 @app.route('/api/search', methods=['GET'])
 def search():
     q = request.args.get('q', '').lower().strip()
-    lat = float(request.args.get('lat', 28.6139))
-    lon = float(request.args.get('lon', 77.2090))
+    lat = float(request.args.get('lat', 30.9010))
+    lon = float(request.args.get('lon', 75.8573))
+    addr = request.args.get('addr', '').strip() or request.args.get('city', '').strip()
+    
+    city_display, area_list = resolve_locality_and_areas(addr, addr, lat, lon)
     
     conn = get_db()
     
-    vendors = conn.execute(
-        "SELECT * FROM Vendors WHERE LOWER(business_name) LIKE ? OR LOWER(category) LIKE ? OR LOWER(description) LIKE ?",
-        (f'%{q}%', f'%{q}%', f'%{q}%')).fetchall()
-        
-    products = conn.execute(
-        "SELECT p.*, v.business_name FROM Products p JOIN Vendors v ON p.vendor_id=v.vendor_id WHERE LOWER(p.product_name) LIKE ? OR LOWER(p.category) LIKE ? OR LOWER(p.description) LIKE ?",
-        (f'%{q}%', f'%{q}%', f'%{q}%')).fetchall()
-        
+    all_vendors = conn.execute("SELECT * FROM Vendors").fetchall()
     vendor_list = []
-    for v in vendors:
+    
+    for idx, v in enumerate(all_vendors):
         vd = dict(v)
-        lat_off = vd.get('lat_offset') or 0.0015
-        lon_off = vd.get('lon_offset') or 0.0015
+        local_area = area_list[idx % len(area_list)]
+        category_title = CATEGORY_STORE_TEMPLATES.get(vd['category'], vd['category'] + ' Store')
+        vd['business_name'] = f"{local_area} {category_title}"
+        vd['address'] = f"Shop {idx+1}, {local_area}, {city_display}"
+        vd['city'] = city_display
+
+        angle = idx * 0.3926
+        radius_km = 0.2 + (idx * 0.09)
+        lat_off = (radius_km / 111.0) * math.cos(angle)
+        lon_off = (radius_km / 96.0) * math.sin(angle)
         vd['latitude'] = round(lat + lat_off, 6)
         vd['longitude'] = round(lon + lon_off, 6)
         vd['distance_km'] = haversine(lat, lon, vd['latitude'], vd['longitude'])
-        vendor_list.append(vd)
+
+        # Check match if query is provided
+        if not q or q in vd['business_name'].lower() or q in vd['category'].lower() or q in (vd.get('description') or '').lower():
+            vendor_list.append(vd)
+        
+    products = conn.execute(
+        "SELECT p.*, v.category as vendor_category FROM Products p JOIN Vendors v ON p.vendor_id=v.vendor_id WHERE LOWER(p.product_name) LIKE ? OR LOWER(p.category) LIKE ? OR LOWER(p.description) LIKE ?",
+        (f'%{q}%', f'%{q}%', f'%{q}%')).fetchall()
+        
+    prod_list = []
+    for p in products:
+        pd = dict(p)
+        # Match vendor name
+        v_idx = (pd['vendor_id'] - 1) % len(all_vendors)
+        local_area = area_list[v_idx % len(area_list)]
+        cat_title = CATEGORY_STORE_TEMPLATES.get(pd.get('vendor_category', 'General'), 'Store')
+        pd['business_name'] = f"{local_area} {cat_title}"
+        prod_list.append(pd)
         
     vendor_list.sort(key=lambda x: x['distance_km'])
     conn.close()
-    return jsonify({'vendors': vendor_list, 'products': [dict(p) for p in products]})
+    return jsonify({'vendors': vendor_list, 'products': prod_list})
 
 # ─── CATEGORIES API ─────────────────────────────────────────
 @app.route('/api/categories', methods=['GET'])

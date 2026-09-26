@@ -1482,7 +1482,7 @@
                             return;
                         }
 
-                        let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}`;
+                        let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}&addr=${encodeURIComponent(this.userAddr || '')}`;
                         const res = await fetch(url);
                         if (res.ok) {
                             const data = await res.json();
