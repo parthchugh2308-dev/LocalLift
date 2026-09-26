@@ -323,19 +323,35 @@
              x-transition.opacity.duration.300ms
              class="absolute inset-0 z-40 bg-white flex flex-col">
             
-            <!-- Top bar -->
-            <div class="absolute top-4 left-4 right-4 z-[400] flex justify-between items-center">
-                <button @click="screen = 'location'" class="w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-800 font-bold active:scale-95 border border-gray-100">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <div class="bg-white/95 backdrop-blur px-4 py-2 rounded-full shadow-md text-xs font-extrabold text-indigo-700 border border-indigo-50">
-                    <i class="fa-solid fa-map-pin mr-1 text-indigo-600"></i> Drag pin to adjust
+            <!-- Top search & back bar over map -->
+            <div class="absolute top-4 left-4 right-4 z-[400] flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                    <button @click="screen = 'location'" class="w-11 h-11 bg-white rounded-2xl shadow-lg flex items-center justify-center text-gray-800 font-bold active:scale-95 border border-gray-100 shrink-0">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    
+                    <div class="flex-1 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 flex items-center px-3.5 py-2.5">
+                        <i class="fa-solid fa-magnifying-glass text-indigo-600 mr-2.5 text-xs"></i>
+                        <input type="text" 
+                               x-model="mapSearchInput" 
+                               @keyup.enter="searchMapLocation()"
+                               placeholder="Search city, street or colony..." 
+                               class="w-full bg-transparent text-xs font-extrabold text-gray-800 focus:outline-none placeholder-gray-400">
+                        <button @click="searchMapLocation()" class="bg-indigo-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg ml-1 shrink-0 active:scale-95">
+                            Search
+                        </button>
+                    </div>
                 </div>
-                <div class="w-11"></div>
             </div>
 
             <!-- Leaflet Map Element -->
-            <div id="confirmMapEl" class="flex-1 w-full bg-gray-200"></div>
+            <div id="confirmMapEl" class="flex-1 w-full bg-gray-200 relative"></div>
+
+            <!-- Floating GPS Recenter Button -->
+            <button @click="recenterHardwareGPS()" 
+                    class="absolute bottom-[230px] right-4 z-[400] w-12 h-12 bg-white text-indigo-600 rounded-full shadow-2xl flex items-center justify-center border border-indigo-100 active:scale-95 font-bold text-lg hover:bg-indigo-50">
+                <i class="fa-solid fa-crosshairs" :class="locatingGps ? 'animate-spin text-indigo-500' : ''"></i>
+            </button>
 
             <!-- Bottom Confirmation Card -->
             <div class="bg-white rounded-t-[32px] shadow-[0_-10px_35px_rgba(0,0,0,0.15)] p-6 z-[400] flex flex-col">
@@ -347,7 +363,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <h4 class="font-extrabold text-gray-900 text-base line-clamp-1" x-text="confirmLoc.title || 'Selected Area'"></h4>
-                        <p class="text-xs text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Fetching exact street address...'"></p>
+                        <p class="text-xs text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Drag the pin to adjust your exact street...'"></p>
                     </div>
                 </div>
 
@@ -1264,6 +1280,76 @@
                     }
                 },
 
+                mapSearchInput: '',
+
+                recenterHardwareGPS() {
+                    this.locatingGps = true;
+                    this.showToast('Pinpointing device hardware GPS...', 'info');
+
+                    if (!navigator.geolocation) {
+                        this.showToast('GPS not available on this device', 'error');
+                        this.locatingGps = false;
+                        return;
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                            this.locatingGps = false;
+                            const lat = pos.coords.latitude;
+                            const lon = pos.coords.longitude;
+                            this.showToast('GPS location locked!', 'success');
+                            if (this.confirmMapObj && this.confirmMarkerObj) {
+                                this.confirmMapObj.setView([lat, lon], 17);
+                                this.confirmMarkerObj.setLatLng([lat, lon]);
+                                this.confirmLoc.lat = lat;
+                                this.confirmLoc.lon = lon;
+                                await this.reverseGeocode(lat, lon);
+                            } else {
+                                await this.openMapConfirmation(lat, lon);
+                            }
+                        },
+                        (err) => {
+                            this.locatingGps = false;
+                            this.showToast('Please enable Location in iPhone Settings > Privacy > Location Services', 'error');
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    );
+                },
+
+                async searchMapLocation() {
+                    const query = this.mapSearchInput.trim();
+                    if (!query || query.length < 2) {
+                        this.showToast('Type a city or street to search', 'error');
+                        return;
+                    }
+
+                    this.showToast('Searching for ' + query + '...', 'info');
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=1&accept-language=en`);
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            const lat = parseFloat(data[0].lat);
+                            const lon = parseFloat(data[0].lon);
+                            this.confirmLoc.lat = lat;
+                            this.confirmLoc.lon = lon;
+                            this.confirmLoc.title = data[0].display_name.split(',')[0];
+                            this.confirmLoc.fullAddress = data[0].display_name;
+
+                            if (this.confirmMapObj && this.confirmMarkerObj) {
+                                this.confirmMapObj.setView([lat, lon], 16);
+                                this.confirmMarkerObj.setLatLng([lat, lon]);
+                            } else {
+                                await this.openMapConfirmation(lat, lon, data[0].display_name);
+                            }
+                            this.showToast('Map moved to ' + this.confirmLoc.title, 'success');
+                        } else {
+                            this.showToast('Location not found. Try entering city name.', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Search network error', 'error');
+                    }
+                },
+
                 async openMapConfirmation(lat, lon, knownTitle = '') {
                     this.confirmLoc.lat = lat;
                     this.confirmLoc.lon = lon;
@@ -1295,6 +1381,15 @@
 
                                 this.confirmMarkerObj.on('dragend', async (e) => {
                                     const pos = e.target.getLatLng();
+                                    this.confirmLoc.lat = pos.lat;
+                                    this.confirmLoc.lon = pos.lng;
+                                    await this.reverseGeocode(pos.lat, pos.lng);
+                                });
+
+                                // Also allow clicking anywhere on the map to move the pin
+                                this.confirmMapObj.on('click', async (e) => {
+                                    const pos = e.latlng;
+                                    this.confirmMarkerObj.setLatLng(pos);
                                     this.confirmLoc.lat = pos.lat;
                                     this.confirmLoc.lon = pos.lng;
                                     await this.reverseGeocode(pos.lat, pos.lng);
