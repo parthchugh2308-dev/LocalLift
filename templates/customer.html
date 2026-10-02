@@ -354,22 +354,40 @@
             </button>
 
             <!-- Bottom Confirmation Card -->
-            <div class="bg-white rounded-t-[32px] shadow-[0_-10px_35px_rgba(0,0,0,0.15)] p-6 z-[400] flex flex-col">
-                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"></div>
+            <div class="bg-white rounded-t-[32px] shadow-[0_-10px_35px_rgba(0,0,0,0.15)] p-5 z-[400] flex flex-col">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-3"></div>
                 
-                <div class="flex items-start gap-4 mb-5">
-                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 mt-0.5">
-                        <i class="fa-solid fa-location-dot text-xl"></i>
+                <!-- Live GPS Coordinates & Accuracy Badge -->
+                <div class="flex items-center justify-between bg-blue-50/90 border border-blue-100 rounded-2xl px-3.5 py-2 mb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
+                        <span class="text-xs font-black text-blue-950">📍 Live GPS Position</span>
+                    </div>
+                    <span class="text-[11px] font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-100 shadow-sm" x-text="(confirmLoc.lat ? confirmLoc.lat.toFixed(5) : '0.00000') + ', ' + (confirmLoc.lon ? confirmLoc.lon.toFixed(5) : '0.00000')"></span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs mb-3 px-1" x-show="confirmLoc.accuracy">
+                    <span class="text-gray-500 font-bold flex items-center gap-1.5 text-[11px]">
+                        <i class="fa-solid fa-satellite-dish text-indigo-500"></i> Location accuracy:
+                    </span>
+                    <span class="font-extrabold px-2.5 py-0.5 rounded-full text-[11px]"
+                          :class="confirmLoc.accuracy <= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                          x-text="'±' + confirmLoc.accuracy + ' meters'"></span>
+                </div>
+
+                <div class="flex items-start gap-3.5 mb-4">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-location-dot text-lg"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-extrabold text-gray-900 text-base line-clamp-1" x-text="confirmLoc.title || 'Selected Area'"></h4>
-                        <p class="text-xs text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Drag the pin to adjust your exact street...'"></p>
+                        <h4 class="font-extrabold text-gray-900 text-sm line-clamp-1" x-text="confirmLoc.title || 'Selected Area'"></h4>
+                        <p class="text-[11px] text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Drag the pin to adjust your exact street...'"></p>
                     </div>
                 </div>
 
-                <button @click="applyConfirmedLocation()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-base py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+                <button @click="applyConfirmedLocation()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
                     <span>Confirm & Discover Shops</span>
-                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
                 </button>
             </div>
         </div>
@@ -474,18 +492,39 @@
 
                     <!-- NEARBY SHOPS LIST -->
                     <div class="px-5">
-                        <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center justify-between mb-2">
                             <div>
                                 <h3 class="font-black text-gray-900 text-base">Shops Near You</h3>
-                                <p class="text-xs text-gray-400 font-semibold" x-text="vendors.length + ' verified local businesses in radius'"></p>
+                                <p class="text-xs text-gray-400 font-semibold" x-text="vendors.length + ' verified businesses sorted nearest first'"></p>
                             </div>
-                            <button @click="tab = 'mapview'; renderMainMap()" class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 active:scale-95">
-                                <i class="fa-solid fa-map-location-dot"></i> View on Map
+                            <button @click="tab = 'mapview'; renderMainMap()" class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 active:scale-95 shadow-sm">
+                                <i class="fa-solid fa-map-location-dot"></i> View Map
                             </button>
                         </div>
 
+                        <!-- Distance Filter Chips -->
+                        <div class="flex items-center gap-2 overflow-x-auto hide-scroll pb-1 my-2">
+                            <template x-for="r in radiusOptions" :key="r.value">
+                                <button @click="changeRadius(r.value)"
+                                        class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 active:scale-95"
+                                        :class="selectedRadius === r.value ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'">
+                                    <i class="fa-solid fa-arrows-to-dot text-[10px]" :class="selectedRadius === r.value ? 'text-white' : 'text-indigo-600'"></i>
+                                    <span x-text="r.label"></span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Auto-Expansion Alert Banner -->
+                        <div x-show="autoExpanded" x-transition class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-3 flex items-start gap-2.5 text-xs font-bold my-2.5 shadow-sm">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base shrink-0 mt-0.5"></i>
+                            <div>
+                                <span class="block text-amber-950 font-extrabold">Notice: Radius Expanded</span>
+                                <span class="text-amber-800 font-medium text-[11px]">Only a few businesses were found nearby. Showing verified businesses within 5 km.</span>
+                            </div>
+                        </div>
+
                         <!-- Shop Cards -->
-                        <div class="flex flex-col gap-3.5">
+                        <div class="flex flex-col gap-3.5 mt-2">
                             <template x-for="vendor in vendors" :key="vendor.vendor_id">
                                 <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-gray-100 flex gap-3.5 cursor-pointer hover:border-indigo-200 active:scale-[0.98] transition"
                                      @click="openShopProfile(vendor)">
@@ -517,14 +556,15 @@
 
                                         <p class="text-xs text-gray-400 font-medium line-clamp-1" x-text="vendor.description"></p>
 
-                                        <div class="flex items-center justify-between pt-1 border-t border-gray-50">
-                                            <span class="text-xs font-bold text-gray-600 flex items-center gap-1">
-                                                <i class="fa-solid fa-person-biking text-indigo-500"></i>
-                                                <span x-text="vendor.distance_km + ' km away'"></span>
+                                        <div class="flex items-center justify-between pt-1.5 border-t border-gray-50">
+                                            <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-location-dot text-indigo-600 text-[11px]"></i>
+                                                <span x-text="vendor.distance_formatted || (vendor.distance_km + ' km away')"></span>
+                                                <span class="text-[10px] text-gray-400 font-medium" x-show="vendor.time_estimate" x-text="'• ' + vendor.time_estimate"></span>
                                             </span>
                                             
-                                            <span class="text-xs font-bold text-indigo-600 hover:underline">
-                                                View Menu →
+                                            <span class="text-xs font-black text-indigo-600 hover:underline flex items-center gap-0.5">
+                                                View <i class="fa-solid fa-chevron-right text-[9px]"></i>
                                             </span>
                                         </div>
                                     </div>
@@ -610,18 +650,56 @@
                 <div x-show="tab === 'mapview'" class="absolute inset-0 z-10 flex flex-col">
                     <div id="fullMainMap" class="w-full h-full bg-slate-100"></div>
 
-                    <!-- Quick Floating shop card when marker tapped -->
+                    <!-- Interactive Slide-up Bottom Sheet for Selected Store -->
                     <div x-show="activeMapShop" 
-                         x-transition
-                         class="absolute bottom-20 left-4 right-4 bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-2xl border border-indigo-100 flex items-center gap-3.5 z-[500]">
-                        <img :src="activeMapShop?.image" class="w-16 h-16 rounded-2xl object-cover shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-extrabold text-gray-900 text-sm truncate" x-text="activeMapShop?.business_name"></h4>
-                            <p class="text-xs text-indigo-600 font-bold" x-text="activeMapShop?.category + ' • ' + activeMapShop?.distance_km + ' km'"></p>
-                            <p class="text-xs text-gray-400 truncate" x-text="activeMapShop?.address"></p>
+                         x-transition:enter="transition ease-out duration-300 transform"
+                         x-transition:enter-start="opacity-0 translate-y-full"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-200 transform"
+                         x-transition:leave-start="opacity-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 translate-y-full"
+                         class="absolute bottom-16 left-3 right-3 bg-white/95 backdrop-blur-lg rounded-3xl p-4 shadow-2xl border border-gray-100 z-[500] flex flex-col gap-3">
+                        
+                        <!-- Top header row -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full" x-text="activeMapShop?.category"></span>
+                            <button @click="activeMapShop = null" class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 active:scale-95 transition">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
                         </div>
-                        <button @click="openShopProfile(activeMapShop)" class="bg-indigo-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-md active:scale-95">
-                            Open
+
+                        <!-- Store Details -->
+                        <div class="flex items-center gap-3.5">
+                            <img :src="activeMapShop?.image" class="w-16 h-16 rounded-2xl object-cover shrink-0 border border-gray-100 shadow-sm">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-1">
+                                    <h4 class="font-extrabold text-gray-900 text-sm truncate" x-text="activeMapShop?.business_name"></h4>
+                                    <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 uppercase"
+                                          :class="activeMapShop?.is_open ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
+                                          x-text="activeMapShop?.is_open ? 'OPEN' : 'CLOSED'"></span>
+                                </div>
+                                
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="flex items-center gap-1 text-[11px] font-black text-amber-500">
+                                        <i class="fa-solid fa-star text-[10px]"></i>
+                                        <span x-text="activeMapShop?.rating"></span>
+                                    </div>
+                                    <span class="text-gray-300">•</span>
+                                    <div class="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                                        <i class="fa-solid fa-location-dot text-indigo-600 text-[10px]"></i>
+                                        <span x-text="activeMapShop?.distance_formatted || (activeMapShop?.distance_km + ' km away')"></span>
+                                        <span class="text-[10px] text-gray-400 font-medium" x-show="activeMapShop?.time_estimate" x-text="'• ' + activeMapShop?.time_estimate"></span>
+                                    </div>
+                                </div>
+
+                                <p class="text-[11px] text-gray-400 font-medium truncate mt-0.5" x-text="activeMapShop?.address"></p>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button @click="openShopProfile(activeMapShop)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs py-3 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+                            <span>View Shop & Products</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
                         </button>
                     </div>
                 </div>
@@ -1014,12 +1092,23 @@
                 showManualSearch: false,
                 manualQuery: '',
                 
-                // User & Location
+                // User & Location State
                 currentUser: { name: 'Local Customer', phone: '+91 9876543210' },
                 userLat: 28.6139,
                 userLon: 77.2090,
                 userAddr: 'Detecting Location...',
-                confirmLoc: { title: '', fullAddress: '', lat: 28.6139, lon: 77.2090 },
+                gpsAccuracy: null,
+                gpsCoordsText: '',
+                selectedRadius: 2.0,
+                autoExpanded: false,
+                radiusOptions: [
+                    { label: 'Within 500 m', value: 0.5 },
+                    { label: 'Within 1 km', value: 1.0 },
+                    { label: 'Within 2 km', value: 2.0 },
+                    { label: 'Within 5 km', value: 5.0 },
+                    { label: 'All nearby (10 km)', value: 10.0 }
+                ],
+                confirmLoc: { title: '', fullAddress: '', lat: 28.6139, lon: 77.2090, accuracy: null },
 
                 // Data Stores
                 vendors: [],
@@ -1048,7 +1137,11 @@
                 // Map instances
                 confirmMapObj: null,
                 confirmMarkerObj: null,
+                confirmCircleObj: null,
                 mainMapObj: null,
+                mainAccuracyCircleObj: null,
+                mainUserMarkerObj: null,
+                mainStoreMarkers: [],
                 activeMapShop: null,
 
                 // 16 Full Categories
@@ -1202,27 +1295,29 @@
                 // ── LOCATION & MAP PICKER ─────────────────────────────
                 requestLiveLocation() {
                     this.locatingGps = true;
-                    this.showToast('Finding your location...', 'info');
+                    this.showToast('Acquiring high-precision GPS lock...', 'info');
 
                     if (!navigator.geolocation) {
                         this.fallbackIpLocation();
                         return;
                     }
 
-                    // First try GPS
+                    // High-accuracy hardware GPS request
                     navigator.geolocation.getCurrentPosition(
                         async (pos) => {
                             this.locatingGps = false;
                             const lat = pos.coords.latitude;
                             const lon = pos.coords.longitude;
-                            await this.openMapConfirmation(lat, lon);
+                            this.gpsAccuracy = Math.round(pos.coords.accuracy || 15);
+                            this.gpsCoordsText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+                            this.showToast(`GPS locked (±${this.gpsAccuracy}m precision)`, 'success');
+                            await this.openMapConfirmation(lat, lon, '', this.gpsAccuracy);
                         },
                         async (err) => {
-                            // On mobile/iOS GPS timeout or denial, seamlessly fallback to IP geolocation
-                            console.log('GPS unavailable or timed out, trying IP fallback:', err);
+                            console.log('High-accuracy GPS failed or timed out, trying IP fallback:', err);
                             await this.fallbackIpLocation();
                         },
-                        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+                        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
                     );
                 },
 
@@ -1233,20 +1328,21 @@
                         this.locatingGps = false;
                         if (data && data.latitude && data.longitude) {
                             const cityName = data.city || data.region || 'Local Area';
-                            this.showToast('Detected ' + cityName + ' area! Adjust on map.', 'info');
-                            await this.openMapConfirmation(data.latitude, data.longitude, cityName);
+                            this.gpsAccuracy = 50;
+                            this.showToast('Detected ' + cityName + ' area! Adjust pin on map.', 'info');
+                            await this.openMapConfirmation(data.latitude, data.longitude, cityName, 50);
                             return;
                         }
                     } catch(e) {
-                        // Fallback 2: FreeIPAPI
                         try {
                             const res2 = await fetch('https://freeipapi.com/api/json');
                             const data2 = await res2.json();
                             this.locatingGps = false;
                             if (data2 && data2.latitude) {
                                 const cName = data2.cityName || 'Local City';
-                                this.showToast('Detected ' + cName + ' area! Adjust on map.', 'info');
-                                await this.openMapConfirmation(data2.latitude, data2.longitude, cName);
+                                this.gpsAccuracy = 50;
+                                this.showToast('Detected ' + cName + ' area! Adjust pin on map.', 'info');
+                                await this.openMapConfirmation(data2.latitude, data2.longitude, cName, 50);
                                 return;
                             }
                         } catch(e2){}
@@ -1254,13 +1350,14 @@
 
                     // Default fallback: Ludhiana / Delhi
                     this.locatingGps = false;
-                    this.showToast('Opening map for your area. Drag pin to set exact location.', 'info');
-                    await this.openMapConfirmation(30.9010, 75.8573, 'Ludhiana, Punjab');
+                    this.gpsAccuracy = 75;
+                    this.showToast('Opening map. Drag pin to pinpoint your street.', 'info');
+                    await this.openMapConfirmation(30.9010, 75.8573, 'Ludhiana, Punjab', 75);
                 },
 
                 async geocodeManualLocation() {
                     if (!this.manualQuery || this.manualQuery.length < 2) {
-                        this.showToast('Please enter a location name', 'error');
+                        this.showToast('Please enter a city or colony name', 'error');
                         return;
                     }
 
@@ -1271,13 +1368,12 @@
                         if (data && data.length > 0) {
                             const lat = parseFloat(data[0].lat);
                             const lon = parseFloat(data[0].lon);
-                            await this.openMapConfirmation(lat, lon, data[0].display_name);
+                            await this.openMapConfirmation(lat, lon, data[0].display_name, 35);
                         } else {
-                            // Fallback
-                            await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery);
+                            await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery, 35);
                         }
                     } catch(e) {
-                        await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery);
+                        await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery, 35);
                     }
                 },
 
@@ -1285,7 +1381,7 @@
 
                 recenterHardwareGPS() {
                     this.locatingGps = true;
-                    this.showToast('Pinpointing device hardware GPS...', 'info');
+                    this.showToast('Locking hardware GPS...', 'info');
 
                     if (!navigator.geolocation) {
                         this.showToast('GPS not available on this device', 'error');
@@ -1298,22 +1394,30 @@
                             this.locatingGps = false;
                             const lat = pos.coords.latitude;
                             const lon = pos.coords.longitude;
-                            this.showToast('GPS location locked!', 'success');
+                            this.gpsAccuracy = Math.round(pos.coords.accuracy || 15);
+                            this.gpsCoordsText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+                            this.confirmLoc.lat = lat;
+                            this.confirmLoc.lon = lon;
+                            this.confirmLoc.accuracy = this.gpsAccuracy;
+                            this.showToast(`GPS position locked (±${this.gpsAccuracy}m)`, 'success');
+
                             if (this.confirmMapObj && this.confirmMarkerObj) {
                                 this.confirmMapObj.setView([lat, lon], 17);
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
-                                this.confirmLoc.lat = lat;
-                                this.confirmLoc.lon = lon;
+                                if (this.confirmCircleObj) {
+                                    this.confirmCircleObj.setLatLng([lat, lon]);
+                                    this.confirmCircleObj.setRadius(this.gpsAccuracy || 25);
+                                }
                                 await this.reverseGeocode(lat, lon);
                             } else {
-                                await this.openMapConfirmation(lat, lon);
+                                await this.openMapConfirmation(lat, lon, '', this.gpsAccuracy);
                             }
                         },
                         (err) => {
                             this.locatingGps = false;
-                            this.showToast('Please enable Location in iPhone Settings > Privacy > Location Services', 'error');
+                            this.showToast('Please enable Location Services in device settings', 'error');
                         },
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
                     );
                 },
 
@@ -1339,10 +1443,13 @@
                             if (this.confirmMapObj && this.confirmMarkerObj) {
                                 this.confirmMapObj.setView([lat, lon], 16);
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
+                                if (this.confirmCircleObj) {
+                                    this.confirmCircleObj.setLatLng([lat, lon]);
+                                }
                             } else {
-                                await this.openMapConfirmation(lat, lon, data[0].display_name);
+                                await this.openMapConfirmation(lat, lon, data[0].display_name, 30);
                             }
-                            this.showToast('Map moved to ' + this.confirmLoc.title, 'success');
+                            this.showToast('Map centered at ' + this.confirmLoc.title, 'success');
                         } else {
                             this.showToast('Location not found. Try entering city name.', 'error');
                         }
@@ -1351,11 +1458,12 @@
                     }
                 },
 
-                async openMapConfirmation(lat, lon, knownTitle = '') {
+                async openMapConfirmation(lat, lon, knownTitle = '', accuracy = null) {
                     this.confirmLoc.lat = lat;
                     this.confirmLoc.lon = lon;
-                    this.confirmLoc.title = knownTitle ? knownTitle.split(',')[0] : 'Locating...';
-                    this.confirmLoc.fullAddress = knownTitle || 'Fetching address details...';
+                    this.confirmLoc.accuracy = accuracy || this.gpsAccuracy || 20;
+                    this.confirmLoc.title = knownTitle ? knownTitle.split(',')[0] : 'Locating Area...';
+                    this.confirmLoc.fullAddress = knownTitle || 'Fetching street details...';
                     this.screen = 'map_confirm';
 
                     this.$nextTick(() => {
@@ -1373,6 +1481,15 @@
                                     attribution: 'Map data &copy; Google Maps'
                                 }).addTo(this.confirmMapObj);
 
+                                // Draw Accuracy Circle
+                                this.confirmCircleObj = L.circle([lat, lon], {
+                                    radius: this.confirmLoc.accuracy || 25,
+                                    color: '#3b82f6',
+                                    fillColor: '#60a5fa',
+                                    fillOpacity: 0.18,
+                                    weight: 1.5
+                                }).addTo(this.confirmMapObj);
+
                                 const pinIcon = L.divIcon({
                                     className: '',
                                     html: '<div class="shop-map-pin bg-rose-600 shadow-xl border-2 border-white"><i class="fa-solid fa-location-dot"></i></div>',
@@ -1386,20 +1503,30 @@
                                     const pos = e.target.getLatLng();
                                     this.confirmLoc.lat = pos.lat;
                                     this.confirmLoc.lon = pos.lng;
+                                    if (this.confirmCircleObj) {
+                                        this.confirmCircleObj.setLatLng([pos.lat, pos.lng]);
+                                    }
                                     await this.reverseGeocode(pos.lat, pos.lng);
                                 });
 
-                                // Also allow clicking anywhere on the map to move the pin
+                                // Allow clicking anywhere on the map to move pin & accuracy circle
                                 this.confirmMapObj.on('click', async (e) => {
                                     const pos = e.latlng;
                                     this.confirmMarkerObj.setLatLng(pos);
                                     this.confirmLoc.lat = pos.lat;
                                     this.confirmLoc.lon = pos.lng;
+                                    if (this.confirmCircleObj) {
+                                        this.confirmCircleObj.setLatLng(pos);
+                                    }
                                     await this.reverseGeocode(pos.lat, pos.lng);
                                 });
                             } else {
                                 this.confirmMapObj.setView([lat, lon], 16);
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
+                                if (this.confirmCircleObj) {
+                                    this.confirmCircleObj.setLatLng([lat, lon]);
+                                    this.confirmCircleObj.setRadius(this.confirmLoc.accuracy || 25);
+                                }
                                 this.confirmMapObj.invalidateSize();
                             }
 
@@ -1422,11 +1549,11 @@
                             this.confirmLoc.fullAddress = data.display_name;
                         } else {
                             this.confirmLoc.title = 'Selected Location';
-                            this.confirmLoc.fullAddress = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                            this.confirmLoc.fullAddress = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
                         }
                     } catch(e) {
                         this.confirmLoc.title = 'Selected Area';
-                        this.confirmLoc.fullAddress = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                        this.confirmLoc.fullAddress = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
                     }
                 },
 
@@ -1438,7 +1565,8 @@
                     localStorage.setItem('locallift_location', JSON.stringify({
                         lat: this.userLat,
                         lon: this.userLon,
-                        addr: this.userAddr
+                        addr: this.userAddr,
+                        accuracy: this.confirmLoc.accuracy
                     }));
 
                     this.showToast('Location confirmed! Discovering nearby shops 🏪', 'success');
@@ -1447,16 +1575,25 @@
                     this.tab = 'home';
                 },
 
-                // ── DATA FETCHING ─────────────────────────────────────
+                // ── DATA FETCHING & DISTANCE FILTERING ─────────────────
+                async changeRadius(rVal) {
+                    this.selectedRadius = rVal;
+                    const rText = rVal >= 1 ? rVal + ' km' : (rVal * 1000) + ' m';
+                    this.showToast(`Filtering shops within ${rText}`, 'info');
+                    await this.fetchHyperlocalData();
+                },
+
                 async fetchHyperlocalData() {
                     try {
                         const [vRes, oRes] = await Promise.all([
-                            fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}&addr=${encodeURIComponent(this.userAddr || '')}`),
+                            fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}&radius=${this.selectedRadius}&addr=${encodeURIComponent(this.userAddr || '')}`),
                             fetch('/api/offers')
                         ]);
 
                         if (vRes.ok) {
-                            this.vendors = await vRes.json();
+                            const data = await vRes.json();
+                            this.vendors = data.vendors || [];
+                            this.autoExpanded = data.auto_expanded || false;
                             this.searchResults.vendors = this.vendors;
                         }
                         if (oRes.ok) {
@@ -1476,13 +1613,21 @@
                 async executeSearch() {
                     const q = this.searchQuery.trim().toLowerCase();
                     try {
+                        // No search and no category: show all nearby vendors in explore tab
                         if (!q && !this.selectedCategory) {
                             this.searchResults.vendors = this.vendors;
                             this.searchResults.products = [];
                             return;
                         }
 
-                        let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}&addr=${encodeURIComponent(this.userAddr || '')}`;
+                        // Category filter only (no text query) — filter from already-loaded vendors
+                        if (!q && this.selectedCategory) {
+                            this.searchResults.vendors = this.vendors.filter(v => v.category.toLowerCase() === this.selectedCategory.toLowerCase());
+                            this.searchResults.products = [];
+                            return;
+                        }
+
+                        let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}`;
                         const res = await fetch(url);
                         if (res.ok) {
                             const data = await res.json();
@@ -1499,6 +1644,11 @@
                         }
                     } catch(e) {
                         console.error('Search error:', e);
+                        // Fallback: filter from loaded vendors
+                        this.searchResults.vendors = this.vendors.filter(v =>
+                            v.business_name.toLowerCase().includes(q) ||
+                            v.category.toLowerCase().includes(q)
+                        );
                     }
                 },
 
@@ -1518,47 +1668,76 @@
                                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                                     attribution: 'Map data &copy; Google Maps'
                                 }).addTo(this.mainMapObj);
-
-                                // User GPS Dot
-                                const userIcon = L.divIcon({
-                                    className: '',
-                                    html: '<div class="user-gps-dot"></div>',
-                                    iconSize: [22, 22],
-                                    iconAnchor: [11, 11]
-                                });
-                                L.marker([this.userLat, this.userLon], { icon: userIcon, zIndexOffset: 1000 }).addTo(this.mainMapObj);
-
-                                // Category Colors mapping
-                                const catColors = {
-                                    'Bakery': 'bg-amber-600',
-                                    'Grocery': 'bg-emerald-600',
-                                    'Restaurant': 'bg-rose-600',
-                                    'Clothing': 'bg-pink-600',
-                                    'Pharmacy': 'bg-blue-600',
-                                    'Electronics': 'bg-cyan-600',
-                                    'Stationery': 'bg-indigo-600',
-                                    'Beauty': 'bg-fuchsia-600'
-                                };
-
-                                // Add pins for all nearby shops
-                                this.vendors.forEach(v => {
-                                    const colorClass = catColors[v.category] || 'bg-indigo-600';
-                                    const pin = L.divIcon({
-                                        className: '',
-                                        html: `<div class="shop-map-pin ${colorClass}"><i class="fa-solid fa-store"></i></div>`,
-                                        iconSize: [36, 36],
-                                        iconAnchor: [18, 36]
-                                    });
-
-                                    const m = L.marker([v.latitude, v.longitude], { icon: pin }).addTo(this.mainMapObj);
-                                    m.on('click', () => {
-                                        this.activeMapShop = v;
-                                    });
-                                });
                             } else {
                                 this.mainMapObj.setView([this.userLat, this.userLon], 15);
                                 this.mainMapObj.invalidateSize();
                             }
+
+                            // Accuracy Circle for User
+                            if (this.mainAccuracyCircleObj) {
+                                this.mainMapObj.removeLayer(this.mainAccuracyCircleObj);
+                            }
+                            this.mainAccuracyCircleObj = L.circle([this.userLat, this.userLon], {
+                                radius: this.gpsAccuracy || 25,
+                                color: '#3b82f6',
+                                fillColor: '#60a5fa',
+                                fillOpacity: 0.16,
+                                weight: 1.5
+                            }).addTo(this.mainMapObj);
+
+                            // User GPS Pulsing Dot
+                            if (this.mainUserMarkerObj) {
+                                this.mainMapObj.removeLayer(this.mainUserMarkerObj);
+                            }
+                            const userIcon = L.divIcon({
+                                className: '',
+                                html: '<div class="user-gps-dot"></div>',
+                                iconSize: [22, 22],
+                                iconAnchor: [11, 11]
+                            });
+                            this.mainUserMarkerObj = L.marker([this.userLat, this.userLon], { icon: userIcon, zIndexOffset: 1000 }).addTo(this.mainMapObj);
+
+                            // Clear previous store markers
+                            this.mainStoreMarkers.forEach(m => this.mainMapObj.removeLayer(m));
+                            this.mainStoreMarkers = [];
+
+                            // 16 Category Colors & Icons mapping
+                            const catStyles = {
+                                'Bakery': { color: 'bg-amber-600', icon: 'fa-bread-slice' },
+                                'Grocery': { color: 'bg-emerald-600', icon: 'fa-basket-shopping' },
+                                'Restaurant': { color: 'bg-rose-600', icon: 'fa-utensils' },
+                                'Clothing': { color: 'bg-pink-600', icon: 'fa-shirt' },
+                                'Pharmacy': { color: 'bg-blue-600', icon: 'fa-prescription-bottle-medical' },
+                                'Electronics': { color: 'bg-cyan-600', icon: 'fa-mobile-screen' },
+                                'Stationery': { color: 'bg-indigo-600', icon: 'fa-pen-nib' },
+                                'Beauty': { color: 'bg-fuchsia-600', icon: 'fa-wand-magic-sparkles' },
+                                'Hardware': { color: 'bg-stone-600', icon: 'fa-hammer' },
+                                'Fruits & Vegetables': { color: 'bg-lime-600', icon: 'fa-carrot' },
+                                'Footwear': { color: 'bg-teal-600', icon: 'fa-shoe-prints' },
+                                'Flowers': { color: 'bg-red-500', icon: 'fa-seedling' },
+                                'Pet Supplies': { color: 'bg-orange-600', icon: 'fa-paw' },
+                                'Home Services': { color: 'bg-sky-600', icon: 'fa-screwdriver-wrench' },
+                                'Dairy & Sweets': { color: 'bg-yellow-600', icon: 'fa-cheese' },
+                                'Cafe & Snacks': { color: 'bg-purple-600', icon: 'fa-mug-hot' }
+                            };
+
+                            // Add pins for all nearby shops
+                            this.vendors.forEach(v => {
+                                const style = catStyles[v.category] || { color: 'bg-indigo-600', icon: 'fa-store' };
+                                const pin = L.divIcon({
+                                    className: '',
+                                    html: `<div class="shop-map-pin ${style.color}"><i class="fa-solid ${style.icon}"></i></div>`,
+                                    iconSize: [36, 36],
+                                    iconAnchor: [18, 36]
+                                });
+
+                                const m = L.marker([v.latitude, v.longitude], { icon: pin }).addTo(this.mainMapObj);
+                                m.on('click', () => {
+                                    this.activeMapShop = v;
+                                    this.mainMapObj.panTo([v.latitude, v.longitude]);
+                                });
+                                this.mainStoreMarkers.push(m);
+                            });
                         }, 250);
                     });
                 },
@@ -1572,10 +1751,21 @@
                     this.shopModalOpen = true;
 
                     try {
-                        const res = await fetch(`/api/vendors/${shop.vendor_id || shop.id}`);
+                        // Pass current user lat/lon so backend finds vendor in geo-cache
+                        const res = await fetch(`/api/vendors/${shop.vendor_id || shop.id}?lat=${this.userLat}&lon=${this.userLon}`);
                         if (res.ok) {
                             const data = await res.json();
-                            this.activeShop = data.vendor || shop;
+                            // Merge: keep distance/time fields from original shop, overlay API details
+                            const vendorFromApi = data.vendor || {};
+                            this.activeShop = {
+                                ...shop,
+                                ...vendorFromApi,
+                                image: shop.image || vendorFromApi.image,
+                                business_name: shop.business_name || vendorFromApi.business_name,
+                                distance_km: shop.distance_km,
+                                distance_formatted: shop.distance_formatted,
+                                time_estimate: shop.time_estimate
+                            };
                             this.activeShopProducts = data.products || [];
                             this.activeShopReviews = data.reviews || [];
                         }
@@ -1658,7 +1848,12 @@
                         vendor_id: this.cartVendorId,
                         total_amount: this.cartTotalAmount,
                         notes: this.orderNote,
-                        items: this.cartItems
+                        // Send only DB-required fields for Order_Items table
+                        items: this.cartItems.map(i => ({
+                            product_id: i.product_id,
+                            quantity: i.quantity,
+                            price: i.price
+                        }))
                     };
 
                     try {
