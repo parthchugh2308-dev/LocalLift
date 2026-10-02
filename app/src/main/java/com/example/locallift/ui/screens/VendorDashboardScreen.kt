@@ -72,6 +72,7 @@ import com.example.locallift.data.model.OfferEntity
 import com.example.locallift.data.model.OrderEntity
 import com.example.locallift.data.model.ProductEntity
 import com.example.locallift.ui.components.AiCatalogGeneratorDialog
+import com.example.locallift.data.model.UserEntity
 import com.example.locallift.ui.theme.AmberAccent
 import com.example.locallift.ui.theme.GreenDark
 import com.example.locallift.ui.theme.GreenLight
@@ -81,6 +82,8 @@ import com.example.locallift.ui.viewmodel.VendorViewModel
 @Composable
 fun VendorDashboardScreen(
     viewModel: VendorViewModel,
+    currentUser: UserEntity? = null,
+    onSwitchToCustomer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val currentVendor by viewModel.currentVendor.collectAsStateWithLifecycle()

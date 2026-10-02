@@ -12,6 +12,8 @@ import com.example.locallift.data.model.OrderEntity
 import com.example.locallift.data.model.OrderItemEntity
 import com.example.locallift.data.model.ProductEntity
 import com.example.locallift.data.model.ReviewEntity
+import com.example.locallift.data.model.UserEntity
+import com.example.locallift.data.model.UserRole
 import com.example.locallift.data.model.VendorEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -131,4 +133,23 @@ interface LocalLiftDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReview(review: ReviewEntity)
+
+    // ── USERS / AUTH ──
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertUser(user: UserEntity): Long
+
+    @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
+    suspend fun findUserByEmail(email: String): UserEntity?
+
+    @Query("SELECT * FROM users WHERE id = :id LIMIT 1")
+    suspend fun findUserById(id: Long): UserEntity?
+
+    @Query("UPDATE users SET role = :role WHERE id = :userId")
+    suspend fun updateUserRole(userId: Long, role: UserRole)
+
+    @Query("UPDATE users SET linkedVendorId = :vendorId WHERE id = :userId")
+    suspend fun linkUserToVendor(userId: Long, vendorId: Long)
+
+    @Query("UPDATE users SET linkedVendorId = NULL, role = 'CUSTOMER' WHERE id = :userId")
+    suspend fun unlinkUserFromVendor(userId: Long)
 }

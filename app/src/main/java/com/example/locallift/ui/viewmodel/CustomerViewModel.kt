@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -208,9 +209,10 @@ class CustomerViewModel(private val repository: LocalLiftRepository) : ViewModel
     val cartItems: StateFlow<List<CartItemEntity>> = repository.cartItems
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val cartTotal: StateFlow<Double> = combine(repository.cartItems) { items ->
-        items[0].sumOf { it.price * it.quantity }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    // Derived directly from cartItems flow using map — correct fix for the combine(items[0]) bug
+    val cartTotal: StateFlow<Double> = repository.cartItems
+        .map { items -> items.sumOf { it.price * it.quantity } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     // Orders
     val orders: StateFlow<List<OrderEntity>> = repository.allOrders

@@ -5,7 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,11 +19,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -27,27 +33,35 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.locallift.data.model.UserEntity
+import com.example.locallift.data.model.UserRole
 import com.example.locallift.ui.screens.AiCopilotScreen
 import com.example.locallift.ui.screens.CustomerCartScreen
 import com.example.locallift.ui.screens.CustomerExploreScreen
 import com.example.locallift.ui.screens.CustomerOrdersScreen
 import com.example.locallift.ui.screens.CustomerSearchScreen
+import com.example.locallift.ui.screens.LoginRegisterScreen
+import com.example.locallift.ui.screens.ProfileScreen
 import com.example.locallift.ui.screens.VendorDashboardScreen
 import com.example.locallift.ui.screens.VendorDetailScreen
 import com.example.locallift.ui.theme.CardBorderLight
@@ -55,61 +69,141 @@ import com.example.locallift.ui.theme.EmeraldJewel
 import com.example.locallift.ui.theme.GreenLight
 import com.example.locallift.ui.theme.GreenPrimary
 import com.example.locallift.ui.theme.LocalLiftTheme
+import com.example.locallift.ui.viewmodel.AuthScreenState
+import com.example.locallift.ui.viewmodel.AuthViewModel
 import com.example.locallift.ui.viewmodel.CustomerViewModel
 import com.example.locallift.ui.viewmodel.VendorViewModel
 
+// ── Nav destinations per role ───────────────────────────────────────────────
 enum class NavDestination {
-    EXPLORE,
-    SEARCH,
-    AI_COPILOT,
-    CART,
-    ORDERS,
-    VENDOR
+    EXPLORE, SEARCH, AI_COPILOT, CART, ORDERS, VENDOR, PROFILE
 }
 
+data class NavItem(
+    val destination: NavDestination,
+    val label: String,
+    val icon: ImageVector,
+    val tag: String
+)
+
+val customerNavItems = listOf(
+    NavItem(NavDestination.EXPLORE,    "Explore",   Icons.Default.Home,          "nav_explore"),
+    NavItem(NavDestination.SEARCH,     "Search",    Icons.Default.Search,        "nav_search"),
+    NavItem(NavDestination.AI_COPILOT, "AI",        Icons.Default.Star,          "nav_ai_copilot"),
+    NavItem(NavDestination.CART,       "Cart",      Icons.Default.ShoppingCart,  "nav_cart"),
+    NavItem(NavDestination.ORDERS,     "Orders",    Icons.Default.DateRange,     "nav_orders"),
+    NavItem(NavDestination.PROFILE,    "Profile",   Icons.Default.AccountCircle, "nav_profile")
+)
+
+val vendorNavItems = listOf(
+    NavItem(NavDestination.VENDOR,  "My Shop",   Icons.Default.Store,         "nav_vendor"),
+    NavItem(NavDestination.EXPLORE, "Browse",    Icons.Default.Home,          "nav_explore"),
+    NavItem(NavDestination.PROFILE, "Profile",   Icons.Default.AccountCircle, "nav_profile")
+)
+
+// ── Activity ────────────────────────────────────────────────────────────────
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val app = application as LocalLiftApp
-        val repository = app.repository
 
         setContent {
             LocalLiftTheme {
-                val customerViewModel: CustomerViewModel = viewModel { CustomerViewModel(repository) }
-                val vendorViewModel: VendorViewModel = viewModel { VendorViewModel(repository) }
+                val authViewModel: AuthViewModel = viewModel {
+                    AuthViewModel(app.authRepository)
+                }
+                val customerViewModel: CustomerViewModel = viewModel {
+                    CustomerViewModel(app.repository)
+                }
+                val vendorViewModel: VendorViewModel = viewModel {
+                    VendorViewModel(app.repository)
+                }
 
-                MainScreen(
-                    customerViewModel = customerViewModel,
-                    vendorViewModel = vendorViewModel
-                )
+                val authState by authViewModel.authScreenState.collectAsStateWithLifecycle()
+                val allVendors by customerViewModel.vendorsWithDistance.collectAsStateWithLifecycle()
+
+                AnimatedContent(
+                    targetState = authState,
+                    transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
+                    label = "auth_transition"
+                ) { state ->
+                    when (state) {
+                        is AuthScreenState.Loading -> {
+                            // Blank while session is being restored
+                            Box(Modifier.fillMaxSize())
+                        }
+                        is AuthScreenState.LoggedOut -> {
+                            LoginRegisterScreen(
+                                viewModel = authViewModel,
+                                availableVendorIds = allVendors.map { it.vendor.id }
+                            )
+                        }
+                        is AuthScreenState.LoggedIn -> {
+                            MainScreen(
+                                currentUser = state.user,
+                                authViewModel = authViewModel,
+                                customerViewModel = customerViewModel,
+                                vendorViewModel = vendorViewModel
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+// ── Main app shell (post-login) ─────────────────────────────────────────────
 @Composable
 fun MainScreen(
+    currentUser: UserEntity,
+    authViewModel: AuthViewModel,
     customerViewModel: CustomerViewModel,
     vendorViewModel: VendorViewModel
 ) {
-    var currentNav by remember { mutableStateOf(NavDestination.EXPLORE) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val roleSwitchMsg by authViewModel.roleSwitchMessage.collectAsStateWithLifecycle()
+
+    // Sync VendorViewModel with the logged-in user's vendor id
+    LaunchedEffect(currentUser.linkedVendorId) {
+        currentUser.linkedVendorId?.let { vendorViewModel.switchVendor(it) }
+    }
+
+    // Show role-switch snackbar
+    LaunchedEffect(roleSwitchMsg) {
+        roleSwitchMsg?.let {
+            snackbarHostState.showSnackbar(it)
+            authViewModel.clearRoleSwitchMessage()
+        }
+    }
+
+    val isVendor = currentUser.role == UserRole.VENDOR
+    val navItems = if (isVendor) vendorNavItems else customerNavItems
+
+    var currentNav by remember(isVendor) {
+        mutableStateOf(if (isVendor) NavDestination.VENDOR else NavDestination.EXPLORE)
+    }
     var viewingVendorId by remember { mutableStateOf<Long?>(null) }
+
     val cartItems by customerViewModel.cartItems.collectAsStateWithLifecycle()
     val cartCount = cartItems.sumOf { it.quantity }
 
-    // Handle Back Press navigation
+    // Back-press handling
     BackHandler(enabled = viewingVendorId != null) {
         viewingVendorId = null
         customerViewModel.selectVendor(null)
     }
-    BackHandler(enabled = viewingVendorId == null && currentNav != NavDestination.EXPLORE) {
-        currentNav = NavDestination.EXPLORE
+    BackHandler(enabled = viewingVendorId == null && currentNav != navItems.first().destination) {
+        currentNav = navItems.first().destination
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = 80.dp))
+        },
         bottomBar = {
             if (viewingVendorId == null) {
                 Surface(
@@ -130,89 +224,40 @@ fun MainScreen(
                         windowInsets = WindowInsets(0, 0, 0, 0),
                         modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
                     ) {
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.EXPLORE,
-                            onClick = { currentNav = NavDestination.EXPLORE },
-                            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nav_explore)) },
-                            label = { Text(stringResource(R.string.nav_explore), fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.EXPLORE) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GreenPrimary,
-                                indicatorColor = GreenLight
-                            ),
-                            modifier = Modifier.testTag("nav_explore")
-                        )
-
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.SEARCH,
-                            onClick = { currentNav = NavDestination.SEARCH },
-                            icon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.nav_search)) },
-                            label = { Text(stringResource(R.string.nav_search), fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.SEARCH) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GreenPrimary,
-                                indicatorColor = GreenLight
-                            ),
-                            modifier = Modifier.testTag("nav_search")
-                        )
-
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.AI_COPILOT,
-                            onClick = { currentNav = NavDestination.AI_COPILOT },
-                            icon = { Icon(Icons.Default.Star, contentDescription = "Gemini AI") },
-                            label = { Text("Gemini AI", fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.AI_COPILOT) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color(0xFF4F46E5),
-                                indicatorColor = Color(0xFFEEF2FF)
-                            ),
-                            modifier = Modifier.testTag("nav_ai_copilot")
-                        )
-
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.CART,
-                            onClick = { currentNav = NavDestination.CART },
-                            icon = {
-                                BadgedBox(
-                                    badge = {
-                                        if (cartCount > 0) {
-                                            Badge(containerColor = EmeraldJewel) {
-                                                Text("$cartCount", color = Color.White, fontWeight = FontWeight.Bold)
+                        navItems.forEach { item ->
+                            val isCart = item.destination == NavDestination.CART
+                            NavigationBarItem(
+                                selected = currentNav == item.destination,
+                                onClick = { currentNav = item.destination },
+                                icon = {
+                                    if (isCart && cartCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(containerColor = EmeraldJewel) {
+                                                    Text("$cartCount", color = Color.White, fontWeight = FontWeight.Bold)
+                                                }
                                             }
+                                        ) {
+                                            Icon(item.icon, contentDescription = item.label)
                                         }
+                                    } else {
+                                        Icon(item.icon, contentDescription = item.label)
                                     }
-                                ) {
-                                    Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.nav_cart))
-                                }
-                            },
-                            label = { Text(stringResource(R.string.nav_cart), fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.CART) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GreenPrimary,
-                                indicatorColor = GreenLight
-                            ),
-                            modifier = Modifier.testTag("nav_cart")
-                        )
-
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.ORDERS,
-                            onClick = { currentNav = NavDestination.ORDERS },
-                            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.nav_orders)) },
-                            label = { Text(stringResource(R.string.nav_orders), fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.ORDERS) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GreenPrimary,
-                                indicatorColor = GreenLight
-                            ),
-                            modifier = Modifier.testTag("nav_orders")
-                        )
-
-                        NavigationBarItem(
-                            selected = currentNav == NavDestination.VENDOR,
-                            onClick = { currentNav = NavDestination.VENDOR },
-                            icon = { Icon(Icons.Default.Star, contentDescription = stringResource(R.string.nav_vendor)) },
-                            label = { Text(stringResource(R.string.nav_vendor), fontSize = 10.sp, fontWeight = if (currentNav == NavDestination.VENDOR) FontWeight.Bold else FontWeight.Medium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = GreenPrimary,
-                                indicatorColor = GreenLight
-                            ),
-                            modifier = Modifier.testTag("nav_vendor")
-                        )
+                                },
+                                label = {
+                                    Text(
+                                        item.label,
+                                        fontSize = 10.sp,
+                                        fontWeight = if (currentNav == item.destination) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = GreenPrimary,
+                                    indicatorColor = GreenLight
+                                ),
+                                modifier = Modifier.testTag(item.tag)
+                            )
+                        }
                     }
                 }
             }
@@ -257,7 +302,7 @@ fun MainScreen(
                     )
                     NavDestination.CART -> CustomerCartScreen(
                         viewModel = customerViewModel,
-                        onOrderPlaced = { orderId ->
+                        onOrderPlaced = {
                             currentNav = NavDestination.ORDERS
                         }
                     )
@@ -265,7 +310,19 @@ fun MainScreen(
                         viewModel = customerViewModel
                     )
                     NavDestination.VENDOR -> VendorDashboardScreen(
-                        viewModel = vendorViewModel
+                        viewModel = vendorViewModel,
+                        currentUser = currentUser,
+                        onSwitchToCustomer = {
+                            authViewModel.switchRole(UserRole.CUSTOMER)
+                        }
+                    )
+                    NavDestination.PROFILE -> ProfileScreen(
+                        currentUser = currentUser,
+                        authViewModel = authViewModel,
+                        vendorViewModel = vendorViewModel,
+                        onNavigateToVendorDashboard = {
+                            currentNav = NavDestination.VENDOR
+                        }
                     )
                 }
             }
