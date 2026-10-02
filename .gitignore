@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Virtual Environments
+.env
+.venv
+venv/
+env/
+ENV/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+LocalLift_DB.sqlite
+
+# Android & Gradle Build Artifacts (CRITICAL - prevents git push failure on large binary files)
+.gradle/
+build/
+*/build/
+app/build/
+.build-outputs/
+.kotlin/
+*.apk
+*.aab
+debug.keystore
+debug.keystore.base64
+
+# IDE & OS files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+local.properties
+.dev.env.json
+firebase-applet-config.json
+cloudflared.exe
+*.exe

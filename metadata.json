@@ -1,0 +1,9 @@
+{
+  "name": "LocalLift",
+  "description": "Hyperlocal marketplace connecting customers with verified neighborhood shops, real-time catalog discovery, cart checkout, and vendor dashboard.",
+  "requestFramePermissions": [
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_COARSE_LOCATION"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

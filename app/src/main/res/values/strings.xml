@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">LocalLift</string>
+    <string name="tagline">Hyperlocal Marketplace Platform</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_cart">Cart</string>
+    <string name="nav_orders">My Orders</string>
+    <string name="nav_vendor">Vendor</string>
+    <string name="location_selector">Set Delivery Location</string>
+    <string name="radius_label">Discovery Radius</string>
+</resources>

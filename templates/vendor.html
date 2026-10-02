@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vendor Portal — LocalLift Merchant Dashboard</title>
+  
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            display: ['"Outfit"', '"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b'
+            },
+            accent: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Google Identity Services (GSI) for Real Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Light, Attractive Textural Atmosphere */
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #fafbfc;
+      background-image: 
+        radial-gradient(circle at 10% 15%, rgba(16, 185, 129, 0.07) 0%, transparent 30%),
+        radial-gradient(circle at 90% 12%, rgba(245, 158, 11, 0.06) 0%, transparent 26%),
+        radial-gradient(rgba(16, 185, 129, 0.08) 1.2px, transparent 1.2px),
+        radial-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 28px 28px, 56px 56px;
+      background-position: 0 0, 0 0, 0 0, 14px 14px;
+      background-attachment: fixed;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .glass-header {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+    }
+
+    .card-tactile {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      border-radius: 1.25rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02),
+                  0 10px 24px -4px rgba(16, 185, 129, 0.04),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card-tactile:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.03),
+                  0 16px 32px -4px rgba(16, 185, 129, 0.08),
+                  inset 0 1px 0 rgba(255, 255, 255, 1);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-emerald {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      box-shadow: 0 4px 14px -1px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-emerald:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 6px 20px -1px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="text-slate-900 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white"
+      x-data="vendorApp()"
+      x-init="initApp()"
+      x-cloak>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm pointer-events-none"
+       x-show="toast.visible"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 -translate-y-4"
+       x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 translate-y-0"
+       x-transition:leave-end="opacity-0 -translate-y-4">
+    <div :class="{
+           'bg-emerald-600': toast.type === 'success',
+           'bg-rose-600': toast.type === 'error',
+           'bg-amber-600': toast.type === 'warning',
+           'bg-slate-800': toast.type === 'info'
+         }"
+         class="text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between pointer-events-auto">
+      <div class="flex items-center space-x-2">
+        <i :class="{
+             'fa-circle-check': toast.type === 'success',
+             'fa-triangle-exclamation': toast.type === 'error' || toast.type === 'warning',
+             'fa-circle-info': toast.type === 'info'
+           }" class="fa-solid"></i>
+        <span x-text="toast.message"></span>
+      </div>
+      <button @click="toast.visible = false" class="text-white/80 hover:text-white ml-2">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SCREEN 1: VENDOR AUTHENTICATION (LOGIN & REGISTRATION)    -->
+  <!-- ======================================================== -->
+  <div x-show="!isLoggedIn" class="min-h-screen flex flex-col justify-center items-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 md:p-8 space-y-6">
+      
+      <!-- Brand & Header -->
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl mb-1 shadow-sm border border-brand-100">
+          <i class="fa-solid fa-store text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-black text-slate-800 tracking-tight">LocalLift Merchant Hub</h1>
+        <p class="text-xs text-slate-500 font-medium">Manage your local neighborhood shop catalog, orders & offers</p>
+      </div>
+
+      <!-- Auth Mode Switch Tabs -->
+      <div class="flex bg-slate-100 p-1 rounded-2xl">
+        <button @click="authMode = 'login'; errorMessage = ''"
+                :class="authMode === 'login' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                class="flex-1 py-2 text-xs rounded-xl transition text-center">
+          Sign In
+        </button>
+        <button @click="authMode = 'register'; errorMessage = ''"
+                :class="authMode === 'register' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                class="flex-1 py-2 text-xs rounded-xl transition text-center">
+          Register Shop
+        </button>
+      </div>
+
+      <!-- Error Alert Message -->
+      <div x-show="errorMessage" 
+           class="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2 text-xs text-rose-700">
+        <i class="fa-solid fa-circle-exclamation mt-0.5 shrink-0 text-rose-500"></i>
+        <div class="flex-1" x-text="errorMessage"></div>
+        <button @click="errorMessage = ''" class="text-rose-400 hover:text-rose-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- ─── SUB-SCREEN: LOGIN ─── -->
+      <div x-show="authMode === 'login'" class="space-y-4">
+        
+        <!-- Official Google Sign-In Container -->
+        <div class="flex flex-col items-center justify-center w-full">
+          <div id="google-vendor-btn" class="w-full flex justify-center"></div>
+
+          <!-- Fallback direct button -->
+          <button x-show="!googleButtonRendered"
+                  @click="initiateGoogleLogin()" 
+                  :disabled="isAuthLoading"
+                  class="w-full py-3.5 px-4 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-2xl flex items-center justify-center space-x-3 shadow-sm transition active:scale-[0.99] mt-1">
+            <template x-if="isAuthLoading">
+              <i class="fa-solid fa-circle-notch fa-spin text-brand-600"></i>
+            </template>
+            <template x-if="!isAuthLoading">
+              <svg class="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+            </template>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Or Sign In with Credentials</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <form @submit.prevent="submitLogin()" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vendor Email</label>
+            <div class="relative">
+              <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+              <input type="email" 
+                     x-model="loginForm.email"
+                     placeholder="vendor@locallift.com" 
+                     required
+                     class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white" />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
+              <button type="button" @click="showPassword = !showPassword" class="text-[11px] font-semibold text-brand-600 hover:text-brand-700">
+                <span x-text="showPassword ? 'Hide' : 'Show'"></span>
+              </button>
+            </div>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+              <input :type="showPassword ? 'text' : 'password'" 
+                     x-model="loginForm.password"
+                     placeholder="••••••••" 
+                     required
+                     class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white" />
+            </div>
+          </div>
+
+          <!-- Remember Me Checkbox (Extends JWT to 90 Days) -->
+          <div class="flex items-center justify-between text-xs pt-1">
+            <label class="flex items-center space-x-2 cursor-pointer select-none">
+              <input type="checkbox" 
+                     x-model="loginForm.rememberMe"
+                     class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300">
+              <span class="text-slate-600 font-medium">Remember me for 90 days</span>
+            </label>
+            <span class="text-slate-400 text-[11px]">JWT Session</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" 
+                  :disabled="isAuthLoading"
+                  class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-[0.99]">
+            <template x-if="isAuthLoading">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </template>
+            <span x-text="isAuthLoading ? 'Authenticating...' : 'Sign In to Merchant Hub'"></span>
+          </button>
+        </form>
+
+        <!-- Quick Demo Login Button for instant access -->
+        <button type="button" 
+                @click="loginWithDemoVendor()" 
+                class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl transition flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-bolt text-amber-500"></i>
+          <span>1-Click Login as Demo Merchant (Sharma Bakery)</span>
+        </button>
+      </div>
+
+      <!-- ─── SUB-SCREEN: REGISTRATION ─── -->
+      <div x-show="authMode === 'register'" class="space-y-3.5">
+        <form @submit.prevent="submitRegister()" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Business / Shop Name</label>
+            <input type="text" x-model="registerForm.businessName" placeholder="e.g. Verma Fresh Dairy & Sweets" required
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
+              <select x-model="registerForm.category" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
+                <template x-for="cat in categories" :key="cat">
+                  <option :value="cat" x-text="cat"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Name</label>
+              <input type="text" x-model="registerForm.ownerName" placeholder="Ramesh Verma" required
+                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
+              <input type="email" x-model="registerForm.email" placeholder="owner@store.com" required
+                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone</label>
+              <input type="tel" x-model="registerForm.phone" placeholder="9812345678" required
+                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Shop Address & Landmark</label>
+            <input type="text" x-model="registerForm.address" placeholder="Shop 12, Main Market Road" required
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password (Min 6 chars)</label>
+            <input type="password" x-model="registerForm.password" placeholder="••••••••" required minlength="6"
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <button type="submit" 
+                  :disabled="isAuthLoading"
+                  class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center space-x-2 disabled:opacity-50">
+            <template x-if="isAuthLoading">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </template>
+            <span x-text="isAuthLoading ? 'Registering Shop...' : 'Create Merchant Account'"></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer back link to customer portal -->
+      <div class="text-center pt-2 border-t border-slate-100">
+        <a href="/" class="text-xs text-brand-700 hover:underline font-semibold inline-flex items-center space-x-1">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Switch to LocalLift Customer Marketplace</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SCREEN 2: MERCHANT DASHBOARD (LOGGED IN)                 -->
+  <!-- ======================================================== -->
+  <div x-show="isLoggedIn" class="min-h-screen flex flex-col">
+    
+    <!-- Top Header Navigation -->
+    <header class="glass-header sticky top-0 z-30 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-black shadow-sm">
+            <i class="fa-solid fa-store"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="font-extrabold text-base text-slate-800 leading-tight" x-text="vendorData.shop_name || 'My Local Store'"></h2>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 uppercase"
+                    x-text="vendorData.category || 'Retail'"></span>
+            </div>
+            <p class="text-xs text-slate-400">
+              <span x-text="vendorData.owner_name || 'Merchant'"></span> • ID #<span x-text="vendorId"></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- RBAC Authentication & Role Management Controls -->
+        <div class="flex items-center space-x-2.5">
+          <!-- Active Role Badge -->
+          <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border"
+               :class="{
+                 'bg-emerald-50 border-emerald-200 text-emerald-800': userRole === 'vendor',
+                 'bg-purple-50 border-purple-200 text-purple-800': userRole === 'admin',
+                 'bg-blue-50 border-blue-200 text-blue-800': userRole === 'customer'
+               }">
+            <i :class="{
+                 'fa-store text-emerald-600': userRole === 'vendor',
+                 'fa-shield-halved text-purple-600': userRole === 'admin',
+                 'fa-user text-blue-600': userRole === 'customer'
+               }" class="fa-solid text-xs"></i>
+            <span class="text-xs font-black uppercase tracking-wide" x-text="'Role: ' + (userRole || 'vendor')"></span>
+          </div>
+
+          <!-- Quick RBAC Role Switcher -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+            <button @click="switchUserRole('customer')" 
+                    :class="userRole === 'customer' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                    class="px-2 py-1 rounded-lg transition" title="Switch to Customer Role">
+              🛒 Customer
+            </button>
+            <button @click="switchUserRole('vendor')" 
+                    :class="userRole === 'vendor' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                    class="px-2 py-1 rounded-lg transition" title="Switch to Vendor Role">
+              🏪 Vendor
+            </button>
+            <button @click="switchUserRole('admin')" 
+                    :class="userRole === 'admin' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                    class="px-2 py-1 rounded-lg transition" title="Switch to Admin Role">
+              🛡️ Admin
+            </button>
+          </div>
+
+          <!-- Live Store Open/Closed Toggle Switch -->
+          <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl">
+            <span class="text-xs font-bold" :class="vendorData.is_open ? 'text-emerald-600' : 'text-slate-400'"
+                  x-text="vendorData.is_open ? 'Shop Open' : 'Shop Closed'"></span>
+            <button @click="toggleShopStatus()"
+                    :class="vendorData.is_open ? 'bg-emerald-500' : 'bg-slate-300'"
+                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+              <span :class="vendorData.is_open ? 'translate-x-5' : 'translate-x-0'"
+                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+            </button>
+          </div>
+
+          <!-- Customer View Link -->
+          <a href="/" target="_blank" class="hidden md:inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>Customer View</span>
+          </a>
+
+          <!-- Logout Button -->
+          <button @click="logout()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition flex items-center space-x-1">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- RBAC Customer Warning Banner if logged in user is only 'customer' -->
+    <div x-show="userRole === 'customer'" class="bg-amber-500 text-white px-4 py-2.5 shadow-sm">
+      <div class="max-w-7xl mx-auto flex items-center justify-between text-xs font-medium">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-triangle-exclamation text-amber-100"></i>
+          <span><b>Access Notice:</b> You are currently logged in with the <b>Customer</b> role. Catalog edits and order updates require the <b>Vendor</b> or <b>Admin</b> role.</span>
+        </div>
+        <button @click="switchUserRole('vendor')" class="px-3 py-1 bg-white text-amber-800 font-bold rounded-lg shadow hover:bg-amber-50 transition ml-3 shrink-0">
+          Activate Vendor Mode 🏪
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Area -->
+    <main class="flex-1 max-w-7xl mx-auto w-full p-4 space-y-6">
+      
+      <!-- Key Performance Metrics Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        
+        <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Catalog Items</p>
+            <h3 class="text-xl font-black text-slate-800" x-text="products.length"></h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Orders</p>
+            <h3 class="text-xl font-black text-slate-800" x-text="stats.total_orders || orders.length"></h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-tag"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Offers</p>
+            <h3 class="text-xl font-black text-slate-800" x-text="offers.length"></h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+            <i class="fa-solid fa-star"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Shop Rating</p>
+            <h3 class="text-xl font-black text-slate-800 flex items-center space-x-1">
+              <span x-text="stats.rating || '4.8'"></span>
+              <span class="text-xs text-amber-500 font-normal">★★★★★</span>
+            </h3>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs & Action Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+        
+        <div class="flex space-x-1 overflow-x-auto no-scrollbar">
+          <button @click="activeTab = 'products'"
+                  :class="activeTab === 'products' ? 'bg-brand-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                  class="px-4 py-2 rounded-xl text-xs transition flex items-center space-x-2 whitespace-nowrap">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Product Catalog (<span x-text="products.length"></span>)</span>
+          </button>
+          
+          <button @click="activeTab = 'orders'"
+                  :class="activeTab === 'orders' ? 'bg-brand-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                  class="px-4 py-2 rounded-xl text-xs transition flex items-center space-x-2 whitespace-nowrap">
+            <i class="fa-solid fa-truck-fast"></i>
+            <span>Customer Orders (<span x-text="orders.length"></span>)</span>
+          </button>
+
+          <button @click="activeTab = 'offers'"
+                  :class="activeTab === 'offers' ? 'bg-brand-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                  class="px-4 py-2 rounded-xl text-xs transition flex items-center space-x-2 whitespace-nowrap">
+            <i class="fa-solid fa-percent"></i>
+            <span>Promotions & Deals (<span x-text="offers.length"></span>)</span>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <!-- Gemini AI Catalog Assistant -->
+          <button @click="openAiCatalogModal()"
+                  class="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+            <span>AI Catalog Synthesizer</span>
+          </button>
+
+          <!-- Add Product Button -->
+          <button @click="openAddProductModal()"
+                  class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add Product</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ─── TAB 1: PRODUCT CATALOG ─── -->
+      <div x-show="activeTab === 'products'" class="space-y-4">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <template x-for="prod in products" :key="prod.product_id || prod.id">
+            <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between p-4 space-y-3">
+              <div class="flex space-x-3.5">
+                <div class="w-20 h-20 rounded-2xl bg-slate-100 overflow-hidden shrink-0 border border-slate-100">
+                  <img :src="prod.image_url || prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&fit=crop'" 
+                       :alt="prod.name || prod.product_name"
+                       class="w-full h-full object-cover" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-start">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 uppercase"
+                          x-text="prod.category || vendorData.category"></span>
+                    <span class="text-sm font-black text-brand-700">₹<span x-text="prod.price"></span></span>
+                  </div>
+                  <h4 class="font-bold text-sm text-slate-800 truncate mt-1" x-text="prod.name || prod.product_name"></h4>
+                  <p class="text-xs text-slate-500 line-clamp-2 mt-0.5" x-text="prod.description || 'Fresh quality local stock'"></p>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <!-- In Stock / Out of Stock Toggle -->
+                <button @click="toggleProductStock(prod)"
+                        :class="prod.is_available || prod.availability ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                        class="px-2.5 py-1 text-xs font-bold rounded-xl border flex items-center space-x-1.5 transition">
+                  <i :class="prod.is_available || prod.availability ? 'fa-circle-check text-emerald-500' : 'fa-circle-xmark text-rose-500'" class="fa-solid"></i>
+                  <span x-text="prod.is_available || prod.availability ? 'In Stock' : 'Out of Stock'"></span>
+                </button>
+
+                <div class="flex items-center space-x-1">
+                  <button @click="editProduct(prod)" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 text-xs">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button @click="deleteProduct(prod.product_id || prod.id)" class="p-2 text-rose-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 text-xs">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+      </div>
+
+      <!-- ─── TAB 2: CUSTOMER ORDERS ─── -->
+      <div x-show="activeTab === 'orders'" class="space-y-4">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <template x-for="ord in orders" :key="ord.order_id || ord.id">
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <span class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 font-black text-xs flex items-center justify-center">
+                    #<span x-text="ord.order_id || ord.id"></span>
+                  </span>
+                  <div>
+                    <h4 class="font-bold text-sm text-slate-800" x-text="ord.customer_name || 'Neighborhood Customer'"></h4>
+                    <p class="text-[11px] text-slate-400" x-text="ord.created_at"></p>
+                  </div>
+                </div>
+
+                <span :class="{
+                        'bg-amber-50 text-amber-700 border-amber-200': ord.status === 'pending',
+                        'bg-blue-50 text-blue-700 border-blue-200': ord.status === 'confirmed',
+                        'bg-purple-50 text-purple-700 border-purple-200': ord.status === 'dispatched',
+                        'bg-emerald-50 text-emerald-700 border-emerald-200': ord.status === 'delivered'
+                      }"
+                      class="px-2.5 py-1 text-xs font-black uppercase rounded-xl border"
+                      x-text="ord.status"></span>
+              </div>
+
+              <!-- Order Items Preview -->
+              <div class="bg-slate-50 p-3 rounded-2xl space-y-1.5">
+                <template x-if="ord.items && ord.items.length">
+                  <template x-for="item in ord.items" :key="item.product_name">
+                    <div class="flex justify-between text-xs text-slate-600">
+                      <span><span x-text="item.quantity"></span>x <span x-text="item.product_name"></span></span>
+                      <span class="font-bold">₹<span x-text="item.price * item.quantity"></span></span>
+                    </div>
+                  </template>
+                </template>
+                <div class="pt-2 border-t border-slate-200 flex justify-between text-xs font-black text-slate-800">
+                  <span>Grand Total</span>
+                  <span class="text-brand-700 text-sm">₹<span x-text="ord.total_amount"></span></span>
+                </div>
+              </div>
+
+              <!-- Status Workflow Actions -->
+              <div class="flex items-center space-x-2 pt-1">
+                <template x-if="ord.status === 'pending'">
+                  <button @click="updateOrderStatus(ord.order_id || ord.id, 'confirmed')"
+                          class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition">
+                    Accept & Confirm
+                  </button>
+                </template>
+                <template x-if="ord.status === 'confirmed'">
+                  <button @click="updateOrderStatus(ord.order_id || ord.id, 'dispatched')"
+                          class="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition">
+                    Dispatch Order
+                  </button>
+                </template>
+                <template x-if="ord.status === 'dispatched'">
+                  <button @click="updateOrderStatus(ord.order_id || ord.id, 'delivered')"
+                          class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition">
+                    Mark Delivered
+                  </button>
+                </template>
+                <template x-if="ord.status === 'delivered'">
+                  <div class="flex-1 py-1.5 text-center text-xs font-bold text-emerald-600 bg-emerald-50 rounded-xl">
+                    <i class="fa-solid fa-check-double mr-1"></i> Order Completed
+                  </div>
+                </template>
+              </div>
+
+            </div>
+          </template>
+        </div>
+
+      </div>
+
+      <!-- ─── TAB 3: PROMOTIONS & OFFERS ─── -->
+      <div x-show="activeTab === 'offers'" class="space-y-4">
+        
+        <div class="flex justify-between items-center">
+          <h3 class="font-extrabold text-base text-slate-800">Active Deals & Flash Discounts</h3>
+          <button @click="openAddOfferModal()"
+                  class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-plus"></i>
+            <span>Create New Offer</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <template x-for="off in offers" :key="off.offer_id || off.id">
+            <div class="bg-gradient-to-br from-brand-50 to-emerald-50 rounded-3xl border border-brand-200 p-5 shadow-sm space-y-3 relative overflow-hidden">
+              <div class="flex justify-between items-start">
+                <span class="px-2.5 py-1 bg-brand-600 text-white text-xs font-black uppercase rounded-xl tracking-wider"
+                      x-text="off.discount || off.discount_text || '15% OFF'"></span>
+                <button @click="deleteOffer(off.offer_id || off.id)" class="text-rose-400 hover:text-rose-600 text-xs">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+              <h4 class="font-black text-sm text-slate-800" x-text="off.title"></h4>
+              <p class="text-xs text-slate-600" x-text="off.description"></p>
+              <div class="text-[10px] text-slate-400 font-semibold pt-1">
+                Valid until: <span class="text-slate-600" x-text="off.valid_until || off.end_date || '2026-12-31'"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Modal: Add / Edit Product -->
+    <div x-show="showProductModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl" @click.away="showProductModal = false">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-base text-slate-800" x-text="editingProductId ? 'Edit Product' : 'Add New Product'"></h3>
+          <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveProduct()" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Product Title</label>
+            <input type="text" x-model="productForm.name" 
+                   @input.debounce.350ms="autoFindGoogleImage()"
+                   placeholder="e.g. Fresh Paneer 500g, Amul Butter, Croissant" required
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Price (₹ INR)</label>
+              <input type="number" step="0.5" x-model="productForm.price" placeholder="120" required
+                     class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
+              <select x-model="productForm.category" 
+                      @change="autoFindGoogleImage()"
+                      class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-brand-500">
+                <template x-for="cat in categories" :key="cat">
+                  <option :value="cat" x-text="cat"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <!-- AUTOMATIC GOOGLE PICTURE AUTO-MATCHING -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="block text-xs font-bold text-slate-700 uppercase">Product Picture</label>
+              <button type="button" @click="autoFindGoogleImage(true)" 
+                      class="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center space-x-1.5 transition">
+                <i class="fa-brands fa-google text-blue-500"></i>
+                <span x-text="isSearchingImage ? 'Searching Google...' : 'Re-Scan Google'"></span>
+              </button>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="p-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 rounded-2xl border border-blue-200/80 shadow-xs">
+              <div class="flex items-center space-x-3">
+                <div class="w-16 h-16 rounded-2xl bg-white border border-blue-200 overflow-hidden shrink-0 flex items-center justify-center relative shadow-xs">
+                  <template x-if="productForm.image_url">
+                    <img :src="productForm.image_url" 
+                         @error="$el.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop'"
+                         class="w-full h-full object-cover transition duration-300" />
+                  </template>
+                  <template x-if="!productForm.image_url">
+                    <span class="text-xl">🛍️</span>
+                  </template>
+                  <template x-if="isSearchingImage">
+                    <div class="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center">
+                      <i class="fa-solid fa-circle-notch fa-spin text-blue-600 text-sm"></i>
+                    </div>
+                  </template>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center space-x-1 mb-1">
+                    <span class="inline-flex items-center space-x-1 px-2 py-0.5 bg-blue-600 text-white rounded-md text-[9px] font-black uppercase tracking-wider">
+                      <i class="fa-brands fa-google"></i>
+                      <span>Google Auto-Matched</span>
+                    </span>
+                    <span class="text-[10px] text-emerald-600 font-bold">✓ Verified</span>
+                  </div>
+                  <p class="text-xs font-bold text-slate-800 truncate" x-text="productForm.name || 'Enter product title above'"></p>
+                  <p class="text-[10px] text-slate-500 leading-tight">High-resolution photo automatically chosen for your product</p>
+                </div>
+              </div>
+
+              <!-- Alternatives Selector -->
+              <template x-if="imageSuggestions && imageSuggestions.length">
+                <div class="mt-2.5 pt-2 border-t border-blue-100">
+                  <p class="text-[10px] font-bold text-slate-600 uppercase mb-1 flex items-center space-x-1">
+                    <span>Alternative Google matches (Click to select):</span>
+                  </p>
+                  <div class="flex items-center space-x-2">
+                    <template x-for="(altImg, idx) in imageSuggestions" :key="altImg">
+                      <button type="button" @click="productForm.image_url = altImg; showToast('Switched to alternative photo ' + (idx + 1), 'success')"
+                              :class="productForm.image_url === altImg ? 'ring-2 ring-blue-600 scale-105' : 'opacity-70 hover:opacity-100'"
+                              class="w-11 h-11 rounded-xl overflow-hidden border border-slate-200 transition shadow-xs">
+                        <img :src="altImg" class="w-full h-full object-cover" />
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Manual Custom Image URL Toggle/Input -->
+            <div class="flex items-center space-x-2 pt-0.5">
+              <input type="url" x-model="productForm.image_url" 
+                     placeholder="Or paste custom image URL..." 
+                     class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Short Description</label>
+            <textarea x-model="productForm.description" rows="2" placeholder="Rich in taste, pure ingredients, locally made daily"
+                      class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-brand-500"></textarea>
+          </div>
+
+          <div class="flex items-center space-x-2 pt-1">
+            <input type="checkbox" x-model="productForm.is_available" id="avail-check" class="rounded text-brand-600" />
+            <label for="avail-check" class="text-xs font-semibold text-slate-700">Available for customer orders</label>
+          </div>
+
+          <div class="flex space-x-2 pt-2">
+            <button type="button" @click="showProductModal = false" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+              Save Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Add Offer -->
+    <div x-show="showOfferModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl" @click.away="showOfferModal = false">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-base text-slate-800">Create Promotional Deal</h3>
+          <button @click="showOfferModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveOffer()" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Deal Title</label>
+            <input type="text" x-model="offerForm.title" placeholder="Weekend Special 20% OFF" required
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Discount Tag</label>
+            <input type="text" x-model="offerForm.discount" placeholder="20% OFF or BUY 1 GET 1" required
+                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-brand-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Description</label>
+            <textarea x-model="offerForm.description" rows="2" placeholder="Applies on all fresh items for orders above ₹300"
+                      class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-brand-500"></textarea>
+          </div>
+
+          <div class="flex space-x-2 pt-2">
+            <button type="button" @click="showOfferModal = false" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+              Publish Deal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Gemini AI Retail Catalog Synthesizer -->
+    <div x-show="showAiModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+      <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto" @click.away="showAiModal = false">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-base text-slate-800">Gemini Retail AI Synthesizer</h3>
+              <p class="text-[11px] text-slate-400">Auto-generate items & deals for your shop category</p>
+            </div>
+          </div>
+          <button @click="showAiModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <div class="p-3.5 bg-purple-50 rounded-2xl border border-purple-100 text-xs text-purple-900 leading-relaxed">
+          Generates 4 realistic neighborhood products and 1 promotional offer customized for 
+          <b x-text="vendorData.shop_name"></b> in category <b x-text="vendorData.category"></b>.
+        </div>
+
+        <template x-if="aiResult">
+          <div class="space-y-3 pt-2">
+            <h4 class="font-bold text-xs uppercase text-slate-500 tracking-wider">AI Generated Catalog:</h4>
+            <div class="space-y-2">
+              <template x-for="p in aiResult.products" :key="p.name">
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-start">
+                  <div>
+                    <h5 class="font-bold text-xs text-slate-800" x-text="p.name"></h5>
+                    <p class="text-[11px] text-slate-500" x-text="p.description"></p>
+                  </div>
+                  <span class="text-xs font-black text-brand-700 ml-2">₹<span x-text="p.price"></span></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div class="flex space-x-2 pt-2">
+          <button @click="generateWithAi()" 
+                  :disabled="isAiLoading"
+                  class="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-2xl shadow-md transition flex items-center justify-center space-x-2 disabled:opacity-50">
+            <template x-if="isAiLoading">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </template>
+            <span x-text="isAiLoading ? 'Synthesizing with Gemini...' : (aiResult ? 'Regenerate' : 'Generate with Gemini AI')"></span>
+          </button>
+
+          <template x-if="aiResult">
+            <button @click="applyAiCatalog()" 
+                    class="py-3 px-5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-2xl shadow-md transition">
+              Apply to My Shop
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- ALPINE.JS APPLICATION STATE & METHODS                    -->
+  <!-- ======================================================== -->
+  <script>
+    function vendorApp() {
+      return {
+        // Auth & User State
+        isLoggedIn: false,
+        authMode: 'login',
+        isAuthLoading: false,
+        googleButtonRendered: false,
+        googleClientId: '{{ google_client_id }}',
+        jwtToken: localStorage.getItem('locallift_vendor_token') || localStorage.getItem('locallift_token') || null,
+        currentVendor: null,
+        errorMessage: '',
+        showPassword: false,
+
+        loginForm: {
+          email: '',
+          password: '',
+          rememberMe: true
+        },
+
+        registerForm: {
+          businessName: '',
+          category: 'Bakery',
+          ownerName: '',
+          email: '',
+          phone: '',
+          address: '',
+          password: ''
+        },
+
+        categories: [
+          'Bakery', 'Grocery', 'Restaurant', 'Pharmacy', 'Clothing', 'Electronics',
+          'Stationery', 'Dairy', 'Vegetables', 'Fruits', 'Meat & Fish', 'Hardware',
+          'Florist', 'Bookstore', 'Footwear', 'Beauty'
+        ],
+
+        // Dashboard Data
+        vendorId: 1,
+        vendorData: {
+          id: 1,
+          shop_name: 'Sharma Bakery & Confectionery',
+          owner_name: 'Ramesh Sharma',
+          category: 'Bakery',
+          is_open: true
+        },
+        activeTab: 'products',
+        stats: { total_products: 5, total_orders: 24, active_offers: 1, rating: 4.8 },
+        products: [],
+        orders: [],
+        offers: [],
+
+        // Product Modal State
+        showProductModal: false,
+        editingProductId: null,
+        userRole: 'vendor',
+        imageSuggestions: [],
+        isSearchingImage: false,
+        productForm: {
+          name: '',
+          category: 'Bakery',
+          price: 100,
+          description: '',
+          image_url: '',
+          is_available: true
+        },
+
+        // Offer Modal State
+        showOfferModal: false,
+        offerForm: {
+          title: '',
+          discount: '15% OFF',
+          description: ''
+        },
+
+        // AI Modal State
+        showAiModal: false,
+        isAiLoading: false,
+        aiResult: null,
+
+        // Toast Feedback
+        toast: { visible: false, message: '', type: 'info', timeout: null },
+
+        showToast(message, type = 'info') {
+          clearTimeout(this.toast.timeout);
+          this.toast.message = message;
+          this.toast.type = type;
+          this.toast.visible = true;
+          this.toast.timeout = setTimeout(() => { this.toast.visible = false; }, 3500);
+        },
+
+        getAuthHeaders() {
+          const headers = { 
+            'Content-Type': 'application/json',
+            'X-User-Role': this.userRole || 'vendor'
+          };
+          if (this.jwtToken) {
+            headers['Authorization'] = 'Bearer ' + this.jwtToken;
+          }
+          return headers;
+        },
+
+        async switchUserRole(newRole) {
+          try {
+            const res = await fetch('/api/auth/switch-role', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({ role: newRole })
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.jwtToken = data.token;
+              this.userRole = data.role;
+              if (this.currentVendor) {
+                this.currentVendor.user_type = data.role;
+                this.currentVendor.role = data.role;
+              }
+              localStorage.setItem('locallift_vendor_token', data.token);
+              localStorage.setItem('locallift_token', data.token);
+              this.showToast('RBAC Role switched to: ' + newRole.toUpperCase() + ' 🛡️', 'success');
+              if (newRole === 'customer') {
+                setTimeout(() => { window.location.href = '/'; }, 800);
+              } else {
+                await this.fetchDashboardData();
+              }
+            } else {
+              this.showToast(data.error || 'Could not switch role', 'error');
+            }
+          } catch(err) {
+            this.showToast('Role switch error: ' + err.message, 'error');
+          }
+        },
+
+        // ========================================================
+        // LIFECYCLE: AUTO-SESSION VERIFICATION ON LOAD
+        // ========================================================
+        async initApp() {
+          console.log("[LocalLift Merchant] Initializing portal.");
+
+          // Auto-redirect if valid token exists in localStorage
+          if (this.jwtToken) {
+            try {
+              const res = await fetch('/api/auth/me', { headers: this.getAuthHeaders() });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.authenticated && data.user) {
+                  this.currentVendor = data.user;
+                  this.userRole = data.role || data.user.role || data.user.user_type || 'vendor';
+                  this.vendorId = data.user.vendor_id || 1;
+                  this.isLoggedIn = true;
+                  await this.fetchDashboardData();
+                  this.showToast('Welcome back, ' + (data.user.name || 'Merchant') + '! 👋', 'success');
+                  return;
+                }
+              }
+            } catch(e) {
+              console.log("[LocalLift Merchant] Token verification skipped:", e);
+            }
+          }
+
+          // Initialize Google Sign-In button on login screen
+          this.setupGoogleButton();
+        },
+
+        setupGoogleButton() {
+          const checkGsi = setInterval(() => {
+            if (window.google && window.google.accounts && window.google.accounts.id) {
+              clearInterval(checkGsi);
+              const container = document.getElementById('google-vendor-btn');
+              if (container) {
+                try {
+                  google.accounts.id.initialize({
+                    client_id: this.googleClientId || 'YOUR_GOOGLE_CLIENT_ID',
+                    callback: this.handleGoogleCredential.bind(this)
+                  });
+                  google.accounts.id.renderButton(container, {
+                    theme: 'outline',
+                    size: 'large',
+                    width: '320',
+                    shape: 'pill',
+                    text: 'continue_with'
+                  });
+                  this.googleButtonRendered = true;
+                } catch(err) {
+                  console.warn("GSI render note:", err);
+                }
+              }
+            }
+          }, 300);
+          setTimeout(() => clearInterval(checkGsi), 5000);
+        },
+
+        // ========================================================
+        // GOOGLE OAUTH 2.0 FOR VENDORS
+        // ========================================================
+        async handleGoogleCredential(response) {
+          this.isAuthLoading = true;
+          this.errorMessage = '';
+
+          try {
+            const res = await fetch('/api/auth/google/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id_token: response.credential,
+                user_type: 'vendor'
+              })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              this.jwtToken = data.token;
+              this.currentVendor = data.user;
+              this.userRole = data.role || data.user?.role || data.user?.user_type || 'vendor';
+              this.vendorId = data.user.vendor_id || 1;
+
+              localStorage.setItem('locallift_vendor_token', data.token);
+              localStorage.setItem('locallift_token', data.token);
+              localStorage.setItem('locallift_vendor_user', JSON.stringify(data.user));
+
+              this.isLoggedIn = true;
+              await this.fetchDashboardData();
+              this.showToast('Google Sign-In successful! 🎉', 'success');
+            } else {
+              this.errorMessage = data.error || 'Google login failed for vendor portal.';
+              this.showToast(this.errorMessage, 'error');
+            }
+          } catch(err) {
+            this.errorMessage = 'Google authentication error: ' + err.message;
+            this.showToast(this.errorMessage, 'error');
+          } finally {
+            this.isAuthLoading = false;
+          }
+        },
+
+        async initiateGoogleLogin() {
+          try {
+            const res = await fetch('/api/auth/google/url');
+            const data = await res.json();
+            if (data.url) {
+              window.location.href = data.url;
+            }
+          } catch(e) {
+            this.showToast('Could not initiate Google login: ' + e.message, 'error');
+          }
+        },
+
+        // ========================================================
+        // TRADITIONAL CREDENTIALS LOGIN & REGISTER
+        // ========================================================
+        async submitLogin() {
+          this.isAuthLoading = true;
+          this.errorMessage = '';
+
+          try {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: this.loginForm.email.trim(),
+                password: this.loginForm.password,
+                remember_me: this.loginForm.rememberMe
+              })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              this.jwtToken = data.token;
+              this.currentVendor = data.user || data;
+              this.vendorId = data.vendor_id || data.user?.vendor_id || 1;
+
+              localStorage.setItem('locallift_vendor_token', data.token);
+              localStorage.setItem('locallift_token', data.token);
+              localStorage.setItem('locallift_vendor_user', JSON.stringify(this.currentVendor));
+
+              this.isLoggedIn = true;
+              await this.fetchDashboardData();
+              this.showToast('Logged in successfully!', 'success');
+            } else {
+              this.errorMessage = data.error || 'Invalid email or password. Please verify your credentials.';
+              this.showToast(this.errorMessage, 'error');
+            }
+          } catch(err) {
+            this.errorMessage = 'Network error: ' + err.message;
+            this.showToast(this.errorMessage, 'error');
+          } finally {
+            this.isAuthLoading = false;
+          }
+        },
+
+        async loginWithDemoVendor() {
+          this.loginForm.email = 'vendor@locallift.com';
+          this.loginForm.password = 'password123';
+          await this.submitLogin();
+        },
+
+        async submitRegister() {
+          this.isAuthLoading = true;
+          this.errorMessage = '';
+
+          try {
+            const res = await fetch('/api/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: this.registerForm.ownerName,
+                business_name: this.registerForm.businessName,
+                category: this.registerForm.category,
+                email: this.registerForm.email.trim(),
+                phone: this.registerForm.phone.trim(),
+                address: this.registerForm.address.trim(),
+                password: this.registerForm.password,
+                user_type: 'vendor'
+              })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              this.jwtToken = data.token;
+              this.currentVendor = data.user || data;
+              this.vendorId = data.vendor_id || 1;
+
+              localStorage.setItem('locallift_vendor_token', data.token);
+              localStorage.setItem('locallift_token', data.token);
+              localStorage.setItem('locallift_vendor_user', JSON.stringify(this.currentVendor));
+
+              this.isLoggedIn = true;
+              await this.fetchDashboardData();
+              this.showToast('Shop registered successfully! Welcome aboard 🏪', 'success');
+            } else {
+              this.errorMessage = data.error || 'Registration failed. This email may already be registered.';
+              this.showToast(this.errorMessage, 'error');
+            }
+          } catch(err) {
+            this.errorMessage = 'Network error during registration: ' + err.message;
+            this.showToast(this.errorMessage, 'error');
+          } finally {
+            this.isAuthLoading = false;
+          }
+        },
+
+        logout() {
+          this.jwtToken = null;
+          this.currentVendor = null;
+          this.isLoggedIn = false;
+          localStorage.removeItem('locallift_vendor_token');
+          localStorage.removeItem('locallift_token');
+          localStorage.removeItem('locallift_vendor_user');
+          this.showToast('Logged out securely.', 'info');
+          setTimeout(() => this.setupGoogleButton(), 200);
+        },
+
+        // ========================================================
+        // DASHBOARD DATA & REAL-TIME CRUD APIS
+        // ========================================================
+        async fetchDashboardData() {
+          try {
+            const res = await fetch(`/api/vendors/${this.vendorId}/dashboard`, { headers: this.getAuthHeaders() });
+            if (res.ok) {
+              const data = await res.json();
+              this.vendorData = data.vendorData || data.vendor || this.vendorData;
+              this.stats = data.dashboardStats || data.stats || this.stats;
+              this.products = data.products || [];
+              this.orders = data.orders || [];
+              this.offers = data.offers || [];
+            }
+          } catch(e) {
+            console.error("Dashboard fetch error:", e);
+          }
+        },
+
+        async toggleShopStatus() {
+          this.vendorData.is_open = !this.vendorData.is_open;
+          try {
+            const res = await fetch(`/api/vendors/${this.vendorId}/toggle`, {
+              method: 'PATCH',
+              headers: this.getAuthHeaders()
+            });
+            const data = await res.json();
+            if (data.success && data.is_open !== undefined) {
+              this.vendorData.is_open = data.is_open;
+            }
+            this.showToast(this.vendorData.is_open ? 'Shop is now OPEN for customers' : 'Shop is now CLOSED', 'info');
+          } catch(e) {
+            // Keep local state toggle
+            this.showToast('Shop status updated', 'info');
+          }
+        },
+
+        // Product Catalog Actions
+        openAddProductModal() {
+          this.editingProductId = null;
+          this.imageSuggestions = [];
+          this.productForm = {
+            name: '',
+            category: this.vendorData.category || 'Bakery',
+            price: 100,
+            description: '',
+            image_url: '',
+            is_available: true
+          };
+          this.showProductModal = true;
+        },
+
+        async autoFindGoogleImage(force = false) {
+          const name = (this.productForm.name || '').trim();
+          if (!name) return;
+          this.isSearchingImage = true;
+          try {
+            const cat = this.productForm.category || this.vendorData.category || 'Grocery';
+            const res = await fetch(`/api/products/suggest-image?name=${encodeURIComponent(name)}&category=${encodeURIComponent(cat)}`);
+            const data = await res.json();
+            if (data.success && data.image_url) {
+              this.productForm.image_url = data.image_url;
+              this.imageSuggestions = data.alternatives || [];
+              if (force) {
+                this.showToast('Auto-matched picture from Google product index! 🖼️', 'success');
+              }
+            }
+          } catch(e) {
+            console.warn("Auto image error:", e);
+          } finally {
+            this.isSearchingImage = false;
+          }
+        },
+
+        editProduct(prod) {
+          this.editingProductId = prod.product_id || prod.id;
+          this.imageSuggestions = [];
+          this.productForm = {
+            name: prod.name || prod.product_name,
+            category: prod.category || this.vendorData.category,
+            price: prod.price,
+            description: prod.description || '',
+            image_url: prod.image_url || prod.image || '',
+            is_available: Boolean(prod.is_available ?? prod.availability ?? 1)
+          };
+          this.showProductModal = true;
+          // Preload alternatives in background
+          this.autoFindGoogleImage(false);
+        },
+
+        async saveProduct() {
+          if (!this.productForm.name) return;
+          
+          // RBAC Client Guard
+          if (this.userRole !== 'vendor' && this.userRole !== 'admin') {
+            this.showToast("Forbidden: You must be in 'Vendor' or 'Admin' role to add/edit products.", "warning");
+            return;
+          }
+
+          try {
+            let res;
+            if (this.editingProductId) {
+              res = await fetch(`/api/products/${this.editingProductId}`, {
+                method: 'PUT',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify(this.productForm)
+              });
+            } else {
+              res = await fetch('/api/products', {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify({
+                  ...this.productForm,
+                  vendor_id: this.vendorId
+                })
+              });
+            }
+
+            const data = await res.json();
+            if (res.status === 403 || data.code === 'FORBIDDEN') {
+              this.showToast(data.error || 'Access Denied: Vendor or Admin privileges required.', 'error');
+              return;
+            }
+
+            if (data.success) {
+              this.showToast(this.editingProductId ? 'Product updated with Google picture!' : 'Product added with Google picture! ✨', 'success');
+              this.showProductModal = false;
+              await this.fetchDashboardData();
+            } else {
+              this.showToast(data.error || 'Failed to save product', 'error');
+            }
+          } catch(e) {
+            this.showToast('Failed to save product: ' + e.message, 'error');
+          }
+        },
+
+        async toggleProductStock(prod) {
+          const pid = prod.product_id || prod.id;
+          try {
+            await fetch(`/api/products/${pid}/toggle`, {
+              method: 'PATCH',
+              headers: this.getAuthHeaders()
+            });
+            prod.is_available = !prod.is_available;
+            prod.availability = prod.is_available ? 1 : 0;
+            this.showToast(prod.is_available ? 'Item marked in stock' : 'Item marked out of stock', 'info');
+          } catch(e) {
+            this.showToast('Failed to toggle stock status', 'error');
+          }
+        },
+
+        async deleteProduct(pid) {
+          if (!confirm('Are you sure you want to remove this item from your catalog?')) return;
+          try {
+            await fetch(`/api/products/${pid}`, {
+              method: 'DELETE',
+              headers: this.getAuthHeaders()
+            });
+            this.products = this.products.filter(p => (p.product_id || p.id) !== pid);
+            this.showToast('Product removed.', 'info');
+          } catch(e) {
+            this.showToast('Failed to delete product', 'error');
+          }
+        },
+
+        // Orders Management
+        async updateOrderStatus(orderId, newStatus) {
+          try {
+            await fetch(`/api/orders/${orderId}/status`, {
+              method: 'PATCH',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({ status: newStatus })
+            });
+            const ord = this.orders.find(o => (o.order_id || o.id) === orderId);
+            if (ord) ord.status = newStatus;
+            this.showToast(`Order #${orderId} marked as ${newStatus}!`, 'success');
+          } catch(e) {
+            this.showToast('Failed to update order status', 'error');
+          }
+        },
+
+        // Promotions & Offers
+        openAddOfferModal() {
+          this.offerForm = {
+            title: '',
+            discount: '15% OFF',
+            description: ''
+          };
+          this.showOfferModal = true;
+        },
+
+        async saveOffer() {
+          if (!this.offerForm.title) return;
+          try {
+            await fetch('/api/offers', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                ...this.offerForm,
+                vendor_id: this.vendorId
+              })
+            });
+            this.showOfferModal = false;
+            await this.fetchDashboardData();
+            this.showToast('Offer published to nearby customers!', 'success');
+          } catch(e) {
+            this.showToast('Failed to create offer', 'error');
+          }
+        },
+
+        async deleteOffer(oid) {
+          if (!confirm('Remove this offer?')) return;
+          try {
+            await fetch(`/api/offers/${oid}`, {
+              method: 'DELETE',
+              headers: this.getAuthHeaders()
+            });
+            this.offers = this.offers.filter(o => (o.offer_id || o.id) !== oid);
+            this.showToast('Offer removed', 'info');
+          } catch(e) {
+            this.showToast('Failed to delete offer', 'error');
+          }
+        },
+
+        // AI Retail Synthesizer Modal
+        openAiCatalogModal() {
+          this.aiResult = null;
+          this.showAiModal = true;
+        },
+
+        async generateWithAi() {
+          this.isAiLoading = true;
+          try {
+            const res = await fetch('/api/ai/synthesize-catalog', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                shop_name: this.vendorData.shop_name,
+                category: this.vendorData.category,
+                location: this.vendorData.address || 'Local Market'
+              })
+            });
+            const data = await res.json();
+            if (data.success && data.data) {
+              this.aiResult = data.data;
+              this.showToast('AI synthesized catalog items!', 'success');
+            }
+          } catch(e) {
+            this.showToast('AI generation error: ' + e.message, 'error');
+          } finally {
+            this.isAiLoading = false;
+          }
+        },
+
+        async applyAiCatalog() {
+          if (!this.aiResult || !this.aiResult.products) return;
+          for (const item of this.aiResult.products) {
+            await fetch('/api/products', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                name: item.name,
+                price: item.price,
+                description: item.description,
+                category: this.vendorData.category,
+                vendor_id: this.vendorId
+              })
+            });
+          }
+          if (this.aiResult.special_offer) {
+            await fetch('/api/offers', {
+              method: 'POST',
+              headers: this.getAuthHeaders(),
+              body: JSON.stringify({
+                title: this.aiResult.special_offer.title,
+                discount: this.aiResult.special_offer.discount,
+                description: this.aiResult.special_offer.description,
+                vendor_id: this.vendorId
+              })
+            });
+          }
+          this.showAiModal = false;
+          await this.fetchDashboardData();
+          this.showToast('AI items and offer successfully added to your catalog!', 'success');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

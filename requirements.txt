@@ -1,0 +1,7 @@
+flask
+google-auth
+google-auth-oauthlib
+requests-oauthlib
+PyJWT
+firebase-admin
+requests
