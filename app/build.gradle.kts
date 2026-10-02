@@ -1,32 +1,23 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.secrets)
 }
 
-
 android {
     namespace = "com.example.locallift"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.aistudio.locallift.kxmpzq"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
     }
 
     buildTypes {
@@ -37,20 +28,15 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug {
-            signingConfig = signingConfigs.getByName("debug")
-        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildFeatures {
