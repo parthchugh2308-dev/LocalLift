@@ -1,30 +1,16 @@
-const CACHE = 'locallift-v2';
-const SHELL = ['/', '/manifest.json'];
+const CACHE_NAME = 'locallift-v4';
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
+self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    caches.open(CACHE_NAME).then((cache) => cache.addAll([
+      '/',
+      '/vendor'
+    ]))
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('/api/')) return; // Never cache API calls
+self.addEventListener('fetch', (e) => {
   e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return res;
-      })
-      .catch(() => caches.match(e.request))
+    caches.match(e.request).then((res) => res || fetch(e.request))
   );
 });

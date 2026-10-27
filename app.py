@@ -14,9 +14,9 @@ def get_db():
     if not os.path.exists(DB):
         import init_db
         init_db.init_db()
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=20.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA foreign_keys = OFF")
     return conn
 
 def haversine(lat1, lon1, lat2, lon2):
