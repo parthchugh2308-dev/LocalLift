@@ -1,1912 +1,3808 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
     <title>LocalLift — Discover Local. Support Local.</title>
+
     
+
     <link rel="manifest" href="/manifest.json">
+
     <meta name="theme-color" content="#4f46e5">
+
     <meta name="apple-mobile-web-app-capable" content="yes">
+
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <meta name="mobile-web-app-capable" content="yes">
 
+
+
     <!-- Tailwind CSS -->
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script>
+
         tailwind.config = {
+
             theme: {
+
                 extend: {
+
                     colors: {
+
                         brand: {
+
                             50: '#eef2ff',
+
                             100: '#e0e7ff',
+
                             500: '#6366f1',
+
                             600: '#4f46e5',
+
                             700: '#4338ca',
+
                             900: '#312e81',
+
                         }
+
                     },
+
                     fontFamily: {
-                        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+
                     }
+
                 }
+
             }
+
         }
+
     </script>
+
     
+
     <!-- Icons & Fonts -->
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     
+
     <!-- Leaflet CSS & JS -->
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     
+
     <!-- Alpine.js -->
+
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+
+
     <style>
+
         body {
+
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+
             background-color: #0f172a;
+
             -webkit-tap-highlight-color: transparent;
+
             user-select: none;
+
         }
+
         
+
         .hide-scroll::-webkit-scrollbar { display: none; }
+
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
         
+
         [x-cloak] { display: none !important; }
+
         
+
         .leaflet-container {
+
             font-family: 'Plus Jakarta Sans', sans-serif;
+
             width: 100% !important;
+
             height: 100% !important;
+
         }
+
+
 
         .user-gps-dot {
+
             width: 22px;
+
             height: 22px;
+
             background: #3b82f6;
+
             border-radius: 50%;
+
             border: 3px solid #ffffff;
+
             box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.35), 0 4px 10px rgba(0,0,0,0.3);
+
             animation: pulse-gps 2s infinite;
+
         }
+
+
 
         @keyframes pulse-gps {
+
             0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+
             70% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); }
+
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+
         }
+
+
 
         .shop-map-pin {
+
             width: 36px;
+
             height: 36px;
+
             border-radius: 50% 50% 50% 0;
+
             transform: rotate(-45deg);
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             border: 2px solid white;
+
             box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+
             cursor: pointer;
+
             transition: transform 0.2s;
+
         }
+
         .shop-map-pin i {
+
             transform: rotate(45deg);
+
             font-size: 14px;
+
             color: white;
+
         }
+
         .shop-map-pin:hover {
+
             transform: rotate(-45deg) scale(1.15);
+
         }
+
     </style>
+
 </head>
 
-<body class="w-[100vw] h-[100vh] overflow-hidden p-0 m-0 text-gray-900 bg-blue-50" x-data="LocalLiftApp()" x-init="init()" x-cloak>
+
+
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4 text-gray-900" x-data="localLiftApp()" x-init="init()" x-cloak>
+
+
 
     <!-- MOBILE CONTAINER -->
-    <div class="w-full h-full bg-white overflow-hidden relative flex flex-col">
+
+    <div class="w-full max-w-[430px] h-[100dvh] sm:h-[880px] bg-white sm:rounded-[36px] shadow-2xl overflow-hidden relative flex flex-col border border-gray-100">
+
+
 
         <!-- GLOBAL FLOATING TOAST -->
+
         <div x-show="toast.show" 
+
              x-transition:enter="transition ease-out duration-300 transform"
+
              x-transition:enter-start="opacity-0 -translate-y-8"
+
              x-transition:enter-end="opacity-100 translate-y-0"
+
              x-transition:leave="transition ease-in duration-200 transform"
+
              x-transition:leave-start="opacity-100 translate-y-0"
+
              x-transition:leave-end="opacity-0 -translate-y-8"
+
              class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] w-[90%] max-w-[380px] px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-bold backdrop-blur-md"
+
              :class="{
+
                  'bg-gray-900/95 text-white border border-gray-700': toast.type === 'info',
-                 'bg-blue-600/95 text-white border border-blue-400': toast.type === 'success',
+
+                 'bg-emerald-600/95 text-white border border-emerald-400': toast.type === 'success',
+
                  'bg-rose-600/95 text-white border border-rose-400': toast.type === 'error'
+
              }">
+
             <i class="fa-solid" :class="{
-                'fa-circle-info text-blue-400': toast.type === 'info',
-                'fa-circle-check text-blue-200': toast.type === 'success',
+
+                'fa-circle-info text-indigo-400': toast.type === 'info',
+
+                'fa-circle-check text-emerald-200': toast.type === 'success',
+
                 'fa-circle-exclamation text-rose-200': toast.type === 'error'
+
             }"></i>
+
             <span class="flex-1" x-text="toast.message"></span>
+
         </div>
+
+
 
         <!-- ================= SCREEN 1: SPLASH ================= -->
+
         <div x-show="screen === 'splash'" 
+
              x-transition.opacity.duration.400ms
-             class="absolute inset-0 z-50 bg-gradient-to-br from-blue-700 via-blue-600 to-purple-700 flex flex-col items-center justify-between p-8 text-white text-center">
+
+             class="absolute inset-0 z-50 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 flex flex-col items-center justify-between p-8 text-white text-center">
+
             <div class="w-full flex justify-end">
-                <span class="text-xs bg-white/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest text-blue-100">v2.5 Pro</span>
-            </div>
-            
-            <div class="flex flex-col items-center my-auto">
-                <div class="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center mb-6 shadow-blue-900/50 transform rotate-3">
-                    <i class="fa-solid fa-leaf text-blue-600 text-5xl"></i>
-                </div>
-                <h1 class="text-4xl font-black tracking-tight mb-2">LocalLift</h1>
-                <p class="text-blue-200 font-semibold text-sm max-w-[240px] leading-relaxed">Discover Local. Support Local. Grow Together.</p>
-                
-                <div class="mt-10 flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-white animate-ping"></div>
-                    <span class="text-xs text-blue-200 font-medium">Connecting nearby shops...</span>
-                </div>
+
+                <span class="text-xs bg-white/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest text-indigo-100">v2.5 Pro</span>
+
             </div>
 
-            <div class="text-xs text-blue-300 font-medium">
-                Hyperlocal Community Platform
+            
+
+            <div class="flex flex-col items-center my-auto">
+
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center mb-6 shadow-indigo-900/50 transform rotate-3">
+
+                    <i class="fa-solid fa-leaf text-indigo-600 text-5xl"></i>
+
+                </div>
+
+                <h1 class="text-4xl font-black tracking-tight mb-2">LocalLift</h1>
+
+                <p class="text-indigo-200 font-semibold text-sm max-w-[240px] leading-relaxed">Discover Local. Support Local. Grow Together.</p>
+
+                
+
+                <div class="mt-10 flex items-center gap-2">
+
+                    <div class="w-2 h-2 rounded-full bg-white animate-ping"></div>
+
+                    <span class="text-xs text-indigo-200 font-medium">Connecting nearby shops...</span>
+
+                </div>
+
             </div>
+
+
+
+            <div class="text-xs text-indigo-300 font-medium">
+
+                Hyperlocal Community Platform
+
+            </div>
+
         </div>
+
+
 
         <!-- ================= SCREEN 2: AUTH / SIGN IN ================= -->
+
         <div x-show="screen === 'login'" 
+
              x-transition.opacity.duration.300ms
+
              class="absolute inset-0 z-40 bg-white flex flex-col justify-between p-6 overflow-y-auto hide-scroll">
+
             
+
             <div class="pt-6">
+
                 <!-- Header -->
+
                 <div class="flex items-center gap-3 mb-6">
-                    <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+
+                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+
                         <i class="fa-solid fa-leaf text-2xl"></i>
+
                     </div>
+
                     <div>
+
                         <h2 class="text-2xl font-black text-gray-900 tracking-tight">LocalLift</h2>
+
                         <p class="text-xs font-semibold text-gray-400">Hyperlocal Marketplace</p>
+
                     </div>
+
                 </div>
+
+
 
                 <h3 class="text-3xl font-extrabold text-gray-900 mb-2">Welcome! 👋</h3>
+
                 <p class="text-sm text-gray-500 mb-8 font-medium">Sign in to explore verified shops and products around you.</p>
 
+
+
                 <!-- Mode: Options -->
-                <div x-show="loginMode === 'options'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+                <div x-show="loginMode === 'options'" class="flex flex-col gap-3">
+
                     <button @click="loginWithGoogle()" class="w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-4 rounded-2xl border-2 border-gray-100 flex items-center justify-center gap-3 active:scale-95 transition shadow-sm">
+
                         <i class="fa-brands fa-google text-red-500 text-lg"></i>
+
                         Continue with Google
+
                     </button>
 
-                    <button @click="loginMode = 'phone'" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition shadow-lg shadow-blue-200">
+
+
+                    <button @click="loginMode = 'phone'" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition shadow-lg shadow-indigo-200">
+
                         <i class="fa-solid fa-mobile-screen-button text-lg"></i>
+
                         Phone Number (Instant OTP)
+
                     </button>
+
+
 
                     <button @click="loginMode = 'email'" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition">
+
                         <i class="fa-solid fa-envelope text-lg"></i>
+
                         Continue with Email
+
                     </button>
+
                     
+
                     <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+
                         <span class="text-xs text-gray-400">Are you a shop owner?</span>
-                        <a href="/vendor" class="block mt-2 text-blue-600 text-xs font-bold hover:underline">
+
+                        <a href="/vendor" class="block mt-2 text-indigo-600 text-xs font-bold hover:underline">
+
                             Open Vendor Partner Portal →
+
                         </a>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Mode: Phone OTP -->
+
                 <div x-show="loginMode === 'phone'" class="flex flex-col gap-4">
+
                     <button @click="loginMode = 'options'" class="self-start text-xs font-bold text-gray-500 hover:text-gray-800 flex items-center gap-1.5 py-1">
+
                         <i class="fa-solid fa-arrow-left"></i> Change Method
+
                     </button>
+
+
 
                     <div x-show="!otpSent" class="flex flex-col gap-4 mt-2">
+
                         <h4 class="text-xl font-extrabold text-gray-800">Enter Mobile Number</h4>
+
                         <div class="flex gap-2">
+
                             <div class="bg-gray-100 px-4 py-3.5 rounded-2xl font-bold text-gray-700 flex items-center">+91</div>
-                            <input type="tel" x-model="loginForm.phone" maxlength="10" placeholder="9876543210" class="flex-1 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3.5 font-bold text-gray-800 text-lg focus:outline-none focus:border-blue-600 focus:bg-white transition">
+
+                            <input type="tel" x-model="loginForm.phone" maxlength="10" placeholder="9876543210" class="flex-1 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3.5 font-bold text-gray-800 text-lg focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+
                         </div>
-                        <button @click="sendOtp()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition">
+
+                        <button @click="sendOtp()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition">
+
                             Get Verification Code
+
                         </button>
+
                     </div>
+
+
 
                     <div x-show="otpSent" class="flex flex-col gap-4 mt-2">
+
                         <h4 class="text-xl font-extrabold text-gray-800">Verify Code</h4>
+
                         <p class="text-xs text-gray-500 font-medium">Enter the 4-digit code sent to +91 <span x-text="loginForm.phone" class="font-bold text-gray-800"></span></p>
 
+
+
                         <!-- Demo hint -->
-                        <div class="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-2xl flex items-center gap-2.5 text-xs font-bold">
-                            <i class="fa-solid fa-comment-dots text-blue-600 text-base"></i>
+
+                        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-2xl flex items-center gap-2.5 text-xs font-bold">
+
+                            <i class="fa-solid fa-comment-dots text-emerald-600 text-base"></i>
+
                             <span>SMS Received: Your LocalLift OTP is <strong>1234</strong></span>
+
                         </div>
+
+
 
                         <div class="flex justify-between gap-3 my-2">
-                            <input type="text" maxlength="1" x-model="loginForm.otp1" id="otp-1" @input="if($el.value) document.getElementById('otp-2').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-blue-600 focus:bg-white focus:outline-none">
-                            <input type="text" maxlength="1" x-model="loginForm.otp2" id="otp-2" @input="if($el.value) document.getElementById('otp-3').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-blue-600 focus:bg-white focus:outline-none">
-                            <input type="text" maxlength="1" x-model="loginForm.otp3" id="otp-3" @input="if($el.value) document.getElementById('otp-4').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-blue-600 focus:bg-white focus:outline-none">
-                            <input type="text" maxlength="1" x-model="loginForm.otp4" id="otp-4" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-blue-600 focus:bg-white focus:outline-none">
+
+                            <input type="text" maxlength="1" x-model="loginForm.otp1" id="otp-1" @input="if($el.value) document.getElementById('otp-2').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+
+                            <input type="text" maxlength="1" x-model="loginForm.otp2" id="otp-2" @input="if($el.value) document.getElementById('otp-3').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+
+                            <input type="text" maxlength="1" x-model="loginForm.otp3" id="otp-3" @input="if($el.value) document.getElementById('otp-4').focus()" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+
+                            <input type="text" maxlength="1" x-model="loginForm.otp4" id="otp-4" class="w-16 h-16 text-center text-2xl font-black bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-indigo-600 focus:bg-white focus:outline-none">
+
                         </div>
 
-                        <button @click="verifyOtp()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition">
+
+
+                        <button @click="verifyOtp()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition">
+
                             Verify & Proceed
+
                         </button>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Mode: Email -->
+
                 <div x-show="loginMode === 'email'" class="flex flex-col gap-4">
+
                     <button @click="loginMode = 'options'" class="self-start text-xs font-bold text-gray-500 hover:text-gray-800 flex items-center gap-1.5 py-1">
+
                         <i class="fa-solid fa-arrow-left"></i> Change Method
+
                     </button>
+
+
 
                     <div class="flex flex-col gap-3 mt-2">
+
                         <div>
+
                             <label class="text-xs font-bold text-gray-600 block mb-1">Email Address</label>
-                            <input type="email" x-model="loginForm.email" placeholder="customer@LocalLift.com" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-blue-600 focus:bg-white focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-600 block mb-1">Password</label>
-                            <input type="password" x-model="loginForm.password" placeholder="••••••••" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-blue-600 focus:bg-white focus:outline-none">
-                        </div>
-                        
-                        <div class="flex justify-between items-center text-xs">
-                            <button @click="loginForm.email = 'customer@LocalLift.com'; loginForm.password = 'password123'" class="text-blue-600 font-bold hover:underline">
-                                Autofill Demo Account
-                            </button>
+
+                            <input type="email" x-model="loginForm.email" placeholder="customer@locallift.com" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-indigo-600 focus:bg-white focus:outline-none">
+
                         </div>
 
-                        <button @click="loginWithEmail()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition mt-2">
+                        <div>
+
+                            <label class="text-xs font-bold text-gray-600 block mb-1">Password</label>
+
+                            <input type="password" x-model="loginForm.password" placeholder="••••••••" class="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl p-3.5 font-semibold text-gray-800 focus:border-indigo-600 focus:bg-white focus:outline-none">
+
+                        </div>
+
+                        
+
+                        <div class="flex justify-between items-center text-xs">
+
+                            <button @click="loginForm.email = 'customer@locallift.com'; loginForm.password = 'password123'" class="text-indigo-600 font-bold hover:underline">
+
+                                Autofill Demo Account
+
+                            </button>
+
+                        </div>
+
+
+
+                        <button @click="loginWithEmail()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition mt-2">
+
                             Sign In
+
                         </button>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <p class="text-center text-[11px] text-gray-400 font-medium py-4">
+
                 By continuing, you accept LocalLift's Terms of Service & Privacy Policy.
+
             </p>
+
         </div>
+
+
 
         <!-- ================= SCREEN 3: LOCATION PERMISSION ================= -->
+
         <div x-show="screen === 'location'" 
+
              x-transition.opacity.duration.300ms
+
              class="absolute inset-0 z-30 bg-white flex flex-col justify-between p-6 text-center">
+
             
+
             <div class="pt-8 flex flex-col items-center">
-                <div class="w-24 h-24 bg-blue-50 border-4 border-blue-100 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-blue-100">
-                    <i class="fa-solid fa-location-dot text-4xl text-blue-600 animate-bounce"></i>
+
+                <div class="w-24 h-24 bg-indigo-50 border-4 border-indigo-100 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-indigo-100">
+
+                    <i class="fa-solid fa-location-dot text-4xl text-indigo-600 animate-bounce"></i>
+
                 </div>
+
+
 
                 <h2 class="text-3xl font-black text-gray-900 mb-2">Where are you?</h2>
+
                 <p class="text-sm text-gray-500 font-medium max-w-[280px] leading-relaxed mb-8">
+
                     Allow LocalLift to use your live location to discover verified local vendors, bakeries & shops right next to you.
+
                 </p>
 
-                <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <button @click="requestLiveLocation()" class="w-full bg-blue-600 text-white font-extrabold text-base py-4 px-5 rounded-2xl active:scale-95 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-3">
+
+
+                <div class="w-full flex flex-col gap-3">
+
+                    <button @click="requestLiveLocation()" class="w-full bg-indigo-600 text-white font-extrabold text-base py-4 px-5 rounded-2xl active:scale-95 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-3">
+
                         <i class="fa-solid fa-location-crosshairs text-lg"></i>
+
                         <span x-text="locatingGps ? 'Locating GPS...' : 'Use Current GPS Location'"></span>
+
                     </button>
+
+
 
                     <button @click="showManualSearch = !showManualSearch" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3.5 px-5 rounded-2xl active:scale-95 transition">
+
                         Enter Location Manually
+
                     </button>
+
                 </div>
+
+
 
                 <!-- Manual Location Input -->
+
                 <div x-show="showManualSearch" x-transition class="w-full mt-4 flex gap-2">
-                    <input type="text" x-model="manualQuery" placeholder="e.g. Ludhiana, Connaught Place, Mumbai" class="flex-1 bg-gray-50 border-2 border-gray-200 p-3.5 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-blue-600">
-                    <button @click="geocodeManualLocation()" class="bg-blue-600 text-white px-5 rounded-2xl font-bold shadow-md active:scale-95">
+
+                    <input type="text" x-model="manualQuery" placeholder="e.g. Ludhiana, Connaught Place, Mumbai" class="flex-1 bg-gray-50 border-2 border-gray-200 p-3.5 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600">
+
+                    <button @click="geocodeManualLocation()" class="bg-indigo-600 text-white px-5 rounded-2xl font-bold shadow-md active:scale-95">
+
                         <i class="fa-solid fa-arrow-right"></i>
+
                     </button>
+
                 </div>
+
             </div>
 
-            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100/80 text-left flex items-center gap-3">
-                <i class="fa-solid fa-shield-halved text-blue-600 text-xl"></i>
+
+
+            <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100/80 text-left flex items-center gap-3">
+
+                <i class="fa-solid fa-shield-halved text-indigo-600 text-xl"></i>
+
                 <p class="text-[11px] text-gray-600 font-medium">Your exact GPS coordinates are only used locally to calculate nearby walking and driving distances.</p>
+
             </div>
+
         </div>
+
+
 
         <!-- ================= SCREEN 4: INTERACTIVE MAP CONFIRM ================= -->
+
         <div x-show="screen === 'map_confirm'" 
+
              x-transition.opacity.duration.300ms
+
              class="absolute inset-0 z-40 bg-white flex flex-col">
+
             
+
             <!-- Top search & back bar over map -->
+
             <div class="absolute top-4 left-4 right-4 z-[400] flex flex-col gap-2">
+
                 <div class="flex items-center gap-2">
+
                     <button @click="screen = 'location'" class="w-11 h-11 bg-white rounded-2xl shadow-lg flex items-center justify-center text-gray-800 font-bold active:scale-95 border border-gray-100 shrink-0">
+
                         <i class="fa-solid fa-arrow-left"></i>
+
                     </button>
+
                     
+
                     <div class="flex-1 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 flex items-center px-3.5 py-2.5">
-                        <i class="fa-solid fa-magnifying-glass text-blue-600 mr-2.5 text-xs"></i>
+
+                        <i class="fa-solid fa-magnifying-glass text-indigo-600 mr-2.5 text-xs"></i>
+
                         <input type="text" 
+
                                x-model="mapSearchInput" 
+
                                @keyup.enter="searchMapLocation()"
+
                                placeholder="Search city, street or colony..." 
+
                                class="w-full bg-transparent text-xs font-extrabold text-gray-800 focus:outline-none placeholder-gray-400">
-                        <button @click="searchMapLocation()" class="bg-blue-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg ml-1 shrink-0 active:scale-95">
+
+                        <button @click="searchMapLocation()" class="bg-indigo-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg ml-1 shrink-0 active:scale-95">
+
                             Search
+
                         </button>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Leaflet Map Element -->
+
             <div id="confirmMapEl" class="flex-1 w-full bg-gray-200 relative"></div>
 
+
+
             <!-- Floating GPS Recenter Button -->
+
             <button @click="recenterHardwareGPS()" 
-                    class="absolute bottom-[230px] right-4 z-[400] w-12 h-12 bg-white text-blue-600 rounded-full shadow-2xl flex items-center justify-center border border-blue-100 active:scale-95 font-bold text-lg hover:bg-blue-50">
-                <i class="fa-solid fa-crosshairs" :class="locatingGps ? 'animate-spin text-blue-500' : ''"></i>
+
+                    class="absolute bottom-[230px] right-4 z-[400] w-12 h-12 bg-white text-indigo-600 rounded-full shadow-2xl flex items-center justify-center border border-indigo-100 active:scale-95 font-bold text-lg hover:bg-indigo-50">
+
+                <i class="fa-solid fa-crosshairs" :class="locatingGps ? 'animate-spin text-indigo-500' : ''"></i>
+
             </button>
 
+
+
             <!-- Bottom Confirmation Card -->
+
             <div class="bg-white rounded-t-[32px] shadow-[0_-10px_35px_rgba(0,0,0,0.15)] p-5 z-[400] flex flex-col">
+
                 <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-3"></div>
+
                 
+
                 <!-- Live GPS Coordinates & Accuracy Badge -->
+
                 <div class="flex items-center justify-between bg-blue-50/90 border border-blue-100 rounded-2xl px-3.5 py-2 mb-2.5">
+
                     <div class="flex items-center gap-2">
+
                         <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
+
                         <span class="text-xs font-black text-blue-950">📍 Live GPS Position</span>
+
                     </div>
+
                     <span class="text-[11px] font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-100 shadow-sm" x-text="(confirmLoc.lat ? confirmLoc.lat.toFixed(5) : '0.00000') + ', ' + (confirmLoc.lon ? confirmLoc.lon.toFixed(5) : '0.00000')"></span>
+
                 </div>
+
+
 
                 <div class="flex items-center justify-between text-xs mb-3 px-1" x-show="confirmLoc.accuracy">
+
                     <span class="text-gray-500 font-bold flex items-center gap-1.5 text-[11px]">
-                        <i class="fa-solid fa-satellite-dish text-blue-500"></i> Location accuracy:
+
+                        <i class="fa-solid fa-satellite-dish text-indigo-500"></i> Location accuracy:
+
                     </span>
+
                     <span class="font-extrabold px-2.5 py-0.5 rounded-full text-[11px]"
-                          :class="confirmLoc.accuracy <= 30 ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'"
+
+                          :class="confirmLoc.accuracy <= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+
                           x-text="'±' + confirmLoc.accuracy + ' meters'"></span>
+
                 </div>
+
+
 
                 <div class="flex items-start gap-3.5 mb-4">
-                    <div class="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 mt-0.5">
+
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0 mt-0.5">
+
                         <i class="fa-solid fa-location-dot text-lg"></i>
+
                     </div>
+
                     <div class="flex-1 min-w-0">
+
                         <h4 class="font-extrabold text-gray-900 text-sm line-clamp-1" x-text="confirmLoc.title || 'Selected Area'"></h4>
+
                         <p class="text-[11px] text-gray-500 mt-0.5 font-medium line-clamp-2" x-text="confirmLoc.fullAddress || 'Drag the pin to adjust your exact street...'"></p>
+
                     </div>
+
                 </div>
 
-                <button @click="applyConfirmedLocation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 transition flex items-center justify-center gap-2">
+
+
+                <button @click="applyConfirmedLocation()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+
                     <span>Confirm & Discover Shops</span>
+
                     <i class="fa-solid fa-arrow-right text-xs"></i>
+
                 </button>
+
             </div>
+
         </div>
 
+
+
         <!-- ================= SCREEN 5: MAIN HYPERLOCAL APP ================= -->
+
         <div x-show="screen === 'main'" class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
 
+
+
             <!-- HEADER -->
-            <header class="bg-gradient-to-r from-blue-700 via-blue-600 to-purple-700 text-white pt-5 pb-5 px-5 rounded-b-[28px] shadow-lg flex-shrink-0 z-20">
+
+            <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-700 text-white pt-5 pb-5 px-5 rounded-b-[28px] shadow-lg flex-shrink-0 z-20">
+
                 <!-- Location + Bell -->
+
                 <div class="flex justify-between items-center mb-4">
+
                     <div class="flex items-center gap-2.5 cursor-pointer" @click="screen = 'location'">
+
                         <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-                            <i class="fa-solid fa-location-dot text-blue-200 text-base"></i>
+
+                            <i class="fa-solid fa-location-dot text-indigo-200 text-base"></i>
+
                         </div>
+
                         <div>
-                            <div class="text-[10px] text-blue-200 font-bold uppercase tracking-wider flex items-center gap-1">
+
+                            <div class="text-[10px] text-indigo-200 font-bold uppercase tracking-wider flex items-center gap-1">
+
                                 Delivering to <i class="fa-solid fa-chevron-down text-[9px]"></i>
+
                             </div>
+
                             <div class="font-extrabold text-sm text-white line-clamp-1 max-w-[210px]" x-text="userAddr || 'Current Location'"></div>
+
                         </div>
+
                     </div>
+
+
 
                     <div class="flex items-center gap-2">
+
                         <button class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center active:scale-95 text-white" @click="showToast('You have 2 new local discount coupons!', 'info')">
+
                             <i class="fa-regular fa-bell text-sm"></i>
+
                         </button>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Live Search Bar -->
+
                 <div class="relative bg-white rounded-2xl shadow-md flex items-center px-4 py-2.5 text-gray-800">
-                    <i class="fa-solid fa-magnifying-glass text-blue-500 mr-3 text-sm"></i>
+
+                    <i class="fa-solid fa-magnifying-glass text-indigo-500 mr-3 text-sm"></i>
+
                     <input type="text" 
+
                            placeholder="Search bakery, cake, kurti, medicine, groce..." 
+
                            x-model="searchQuery" 
+
                            @focus="tab = 'explore'"
+
                            @input="executeSearch()"
+
                            class="w-full bg-transparent text-sm font-bold placeholder-gray-400 focus:outline-none">
+
                     <button x-show="searchQuery" @click="searchQuery = ''; executeSearch()" class="text-gray-400 hover:text-gray-600">
+
                         <i class="fa-solid fa-circle-xmark"></i>
+
                     </button>
+
                 </div>
+
             </header>
 
+
+
             <!-- TAB CONTENT CONTAINER -->
+
             <div class="flex-1 overflow-y-auto hide-scroll relative">
 
+
+
                 <!-- ── TAB 1: HOME ────────────────────────────────── -->
+
                 <div x-show="tab === 'home'" class="flex flex-col gap-6 py-4 pb-28">
+
                     
+
                     <!-- OFFERS CAROUSEL -->
+
                     <div class="px-5">
+
                         <div class="flex items-center justify-between mb-3">
+
                             <h3 class="font-black text-gray-900 text-base flex items-center gap-1.5">
+
                                 <span>🔥 Local Offers Near You</span>
+
                             </h3>
-                            <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wide">Live Deals</span>
+
+                            <span class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide">Live Deals</span>
+
                         </div>
+
+
 
                         <div class="flex gap-3.5 overflow-x-auto hide-scroll snap-x pb-2">
+
                             <template x-for="offer in offers" :key="offer.offer_id">
+
                                 <div class="snap-center shrink-0 w-[270px] h-[135px] rounded-3xl p-4 relative overflow-hidden text-white flex flex-col justify-between shadow-md"
+
                                      :class="getOfferGradient(offer.offer_id)">
+
                                     
+
                                     <div class="relative z-10">
+
                                         <span class="text-[10px] font-extrabold uppercase tracking-wider bg-black/25 px-2.5 py-0.5 rounded-full backdrop-blur-sm inline-block mb-1" x-text="offer.business_name"></span>
+
                                         <h4 class="text-xl font-black leading-tight line-clamp-1" x-text="offer.title"></h4>
+
                                     </div>
+
+
 
                                     <div class="relative z-10 flex justify-between items-center">
+
                                         <span class="text-xs font-black bg-white text-gray-900 px-3 py-1 rounded-xl shadow-sm" x-text="offer.discount"></span>
+
                                         <span class="text-[11px] font-bold text-white/90">Claim at Shop →</span>
+
                                     </div>
+
+
 
                                     <i class="fa-solid fa-tags absolute -right-3 -bottom-3 text-7xl text-white/15"></i>
+
                                 </div>
+
                             </template>
+
                         </div>
+
                     </div>
+
+
 
                     <!-- 16 CATEGORIES GRID -->
+
                     <div class="px-5">
+
                         <div class="flex items-center justify-between mb-3">
+
                             <h3 class="font-black text-gray-900 text-base">Explore Categories</h3>
-                            <button @click="selectedCategory = ''; tab = 'explore'; executeSearch()" class="text-xs font-bold text-blue-600">See All (16)</button>
+
+                            <button @click="selectedCategory = ''; tab = 'explore'; executeSearch()" class="text-xs font-bold text-indigo-600">See All (16)</button>
+
                         </div>
+
+
 
                         <div class="grid grid-cols-4 gap-3">
+
                             <template x-for="cat in categoryList" :key="cat.name">
+
                                 <button @click="filterByCategory(cat.name)" 
+
                                         class="flex flex-col items-center gap-1.5 p-2 rounded-2xl transition active:scale-95 group"
-                                        :class="selectedCategory === cat.name ? 'bg-blue-50 border-2 border-blue-600' : 'bg-white border border-gray-100 shadow-sm'">
+
+                                        :class="selectedCategory === cat.name ? 'bg-indigo-50 border-2 border-indigo-600' : 'bg-white border border-gray-100 shadow-sm'">
+
                                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-lg shadow-sm" :class="cat.bgColor + ' ' + cat.textColor">
+
                                         <i class="fa-solid" :class="cat.icon"></i>
+
                                     </div>
+
                                     <span class="text-[11px] font-extrabold text-gray-700 text-center leading-tight line-clamp-1" x-text="cat.name"></span>
+
                                 </button>
+
                             </template>
+
                         </div>
+
                     </div>
 
+
+
                     <!-- NEARBY SHOPS LIST -->
+
                     <div class="px-5">
+
                         <div class="flex items-center justify-between mb-2">
+
                             <div>
+
                                 <h3 class="font-black text-gray-900 text-base">Shops Near You</h3>
+
                                 <p class="text-xs text-gray-400 font-semibold" x-text="vendors.length + ' verified businesses sorted nearest first'"></p>
+
                             </div>
-                            <button @click="tab = 'mapview'; renderMainMap()" class="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 active:scale-95 shadow-sm">
+
+                            <button @click="tab = 'mapview'; renderMainMap()" class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 active:scale-95 shadow-sm">
+
                                 <i class="fa-solid fa-map-location-dot"></i> View Map
+
                             </button>
+
                         </div>
+
+
 
                         <!-- Distance Filter Chips -->
+
                         <div class="flex items-center gap-2 overflow-x-auto hide-scroll pb-1 my-2">
+
                             <template x-for="r in radiusOptions" :key="r.value">
+
                                 <button @click="changeRadius(r.value)"
+
                                         class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold shrink-0 transition flex items-center gap-1.5 active:scale-95"
-                                        :class="selectedRadius === r.value ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'">
-                                    <i class="fa-solid fa-arrows-to-dot text-[10px]" :class="selectedRadius === r.value ? 'text-white' : 'text-blue-600'"></i>
+
+                                        :class="selectedRadius === r.value ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'">
+
+                                    <i class="fa-solid fa-arrows-to-dot text-[10px]" :class="selectedRadius === r.value ? 'text-white' : 'text-indigo-600'"></i>
+
                                     <span x-text="r.label"></span>
+
                                 </button>
+
                             </template>
+
                         </div>
+
+
 
                         <!-- Auto-Expansion Alert Banner -->
+
                         <div x-show="autoExpanded" x-transition class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-3 flex items-start gap-2.5 text-xs font-bold my-2.5 shadow-sm">
+
                             <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base shrink-0 mt-0.5"></i>
+
                             <div>
+
                                 <span class="block text-amber-950 font-extrabold">Notice: Radius Expanded</span>
+
                                 <span class="text-amber-800 font-medium text-[11px]">Only a few businesses were found nearby. Showing verified businesses within 5 km.</span>
+
                             </div>
+
                         </div>
 
+
+
                         <!-- Shop Cards -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+
+                        <div class="flex flex-col gap-3.5 mt-2">
+
                             <template x-for="vendor in vendors" :key="vendor.vendor_id">
-                                <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-gray-100 flex gap-3.5 cursor-pointer hover:border-blue-200 active:scale-[0.98] transition"
+
+                                <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-gray-100 flex gap-3.5 cursor-pointer hover:border-indigo-200 active:scale-[0.98] transition"
+
                                      @click="openShopProfile(vendor)">
+
                                     
+
                                     <!-- Photo -->
+
                                     <div class="w-24 h-24 rounded-2xl bg-gray-100 overflow-hidden shrink-0 relative">
+
                                         <img :src="vendor.image" class="w-full h-full object-cover">
+
                                         <div class="absolute top-1.5 left-1.5 bg-white/95 backdrop-blur text-[10px] font-black px-1.5 py-0.5 rounded-lg text-gray-900 flex items-center gap-1 shadow-sm">
+
                                             <i class="fa-solid fa-star text-yellow-500 text-[9px]"></i>
+
                                             <span x-text="vendor.rating"></span>
+
                                         </div>
+
                                     </div>
 
+
+
                                     <!-- Details -->
+
                                     <div class="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+
                                         <div>
+
                                             <div class="flex justify-between items-start">
+
                                                 <h4 class="font-extrabold text-gray-900 text-base leading-tight truncate" x-text="vendor.business_name"></h4>
+
                                                 <span class="text-[9px] font-black px-2 py-0.5 rounded-md uppercase"
-                                                      :class="vendor.is_open ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'"
+
+                                                      :class="vendor.is_open ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
+
                                                       x-text="vendor.is_open ? 'OPEN' : 'CLOSED'"></span>
+
                                             </div>
+
                                             
-                                            <p class="text-xs text-blue-600 font-bold mt-0.5 flex items-center gap-1">
+
+                                            <p class="text-xs text-indigo-600 font-bold mt-0.5 flex items-center gap-1">
+
                                                 <i class="fa-solid fa-tag text-[10px]"></i>
+
                                                 <span x-text="vendor.category"></span>
+
                                             </p>
+
                                         </div>
+
+
 
                                         <p class="text-xs text-gray-400 font-medium line-clamp-1" x-text="vendor.description"></p>
 
+
+
                                         <div class="flex items-center justify-between pt-1.5 border-t border-gray-50">
+
                                             <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                                                <i class="fa-solid fa-location-dot text-blue-600 text-[11px]"></i>
+
+                                                <i class="fa-solid fa-location-dot text-indigo-600 text-[11px]"></i>
+
                                                 <span x-text="vendor.distance_formatted || (vendor.distance_km + ' km away')"></span>
+
                                                 <span class="text-[10px] text-gray-400 font-medium" x-show="vendor.time_estimate" x-text="'• ' + vendor.time_estimate"></span>
+
                                             </span>
+
                                             
-                                            <span class="text-xs font-black text-blue-600 hover:underline flex items-center gap-0.5">
+
+                                            <span class="text-xs font-black text-indigo-600 hover:underline flex items-center gap-0.5">
+
                                                 View <i class="fa-solid fa-chevron-right text-[9px]"></i>
+
                                             </span>
+
                                         </div>
+
                                     </div>
+
                                 </div>
+
                             </template>
+
                         </div>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- ── TAB 2: EXPLORE / SEARCH ───────────────────── -->
+
                 <div x-show="tab === 'explore'" class="p-5 flex flex-col gap-4 pb-28">
+
                     <div class="flex items-center justify-between">
+
                         <h3 class="font-black text-gray-900 text-xl">Search & Explore</h3>
+
                         <span class="text-xs font-bold text-gray-400" x-text="(searchResults.vendors.length + searchResults.products.length) + ' Results'"></span>
+
                     </div>
+
+
 
                     <!-- Category Pills -->
+
                     <div class="flex gap-2 overflow-x-auto hide-scroll pb-1">
+
                         <button class="px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition"
-                                :class="selectedCategory === '' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+
+                                :class="selectedCategory === '' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+
                                 @click="selectedCategory = ''; executeSearch()">All</button>
+
                         
+
                         <template x-for="cat in categoryList" :key="cat.name">
+
                             <button class="px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition flex items-center gap-1.5"
-                                    :class="selectedCategory === cat.name ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+
+                                    :class="selectedCategory === cat.name ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200'"
+
                                     @click="selectedCategory = cat.name; executeSearch()">
+
                                 <i class="fa-solid" :class="cat.icon"></i>
+
                                 <span x-text="cat.name"></span>
+
                             </button>
+
                         </template>
+
                     </div>
+
+
 
                     <!-- Matching Shops -->
+
                     <div x-show="searchResults.vendors.length > 0">
+
                         <h4 class="font-bold text-gray-700 text-sm mb-2.5">Matching Shops</h4>
+
                         <div class="flex flex-col gap-2.5">
+
                             <template x-for="v in searchResults.vendors" :key="v.vendor_id">
+
                                 <div class="bg-white rounded-2xl p-3 border border-gray-100 flex items-center gap-3 cursor-pointer shadow-sm active:scale-[0.99]"
+
                                      @click="openShopProfile(v)">
+
                                     <img :src="v.image" class="w-14 h-14 rounded-xl object-cover shrink-0">
+
                                     <div class="flex-1 min-w-0">
+
                                         <h5 class="font-bold text-gray-900 text-sm truncate" x-text="v.business_name"></h5>
+
                                         <p class="text-xs text-gray-400" x-text="v.category + ' • ' + v.distance_km + ' km'"></p>
+
                                     </div>
-                                    <div class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">View</div>
+
+                                    <div class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">View</div>
+
                                 </div>
+
                             </template>
+
                         </div>
+
                     </div>
+
+
 
                     <!-- Matching Products -->
+
                     <div x-show="searchResults.products.length > 0">
+
                         <h4 class="font-bold text-gray-700 text-sm mb-2.5">Matching Products</h4>
+
                         <div class="grid grid-cols-2 gap-3">
+
                             <template x-for="p in searchResults.products" :key="p.product_id">
+
                                 <div class="bg-white rounded-2xl p-3 border border-gray-100 flex flex-col justify-between shadow-sm">
+
                                     <img :src="p.image" class="w-full h-24 rounded-xl object-cover mb-2">
+
                                     <div>
+
                                         <h5 class="font-bold text-gray-900 text-xs line-clamp-1" x-text="p.product_name"></h5>
+
                                         <p class="text-[10px] text-gray-400 mb-2 truncate" x-text="p.business_name"></p>
+
                                     </div>
+
                                     <div class="flex justify-between items-center pt-2 border-t border-gray-50">
-                                        <span class="font-black text-blue-600 text-sm">₹<span x-text="p.price"></span></span>
-                                        <button @click="addToCartDirect(p)" class="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold flex items-center justify-center transition">
+
+                                        <span class="font-black text-indigo-600 text-sm">₹<span x-text="p.price"></span></span>
+
+                                        <button @click="addToCartDirect(p)" class="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold flex items-center justify-center transition">
+
                                             <i class="fa-solid fa-plus text-xs"></i>
+
                                         </button>
+
                                     </div>
+
                                 </div>
+
                             </template>
+
                         </div>
+
                     </div>
+
+
 
                     <!-- Empty state -->
+
                     <div x-show="searchResults.vendors.length === 0 && searchResults.products.length === 0" 
+
                          class="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+
                         <i class="fa-solid fa-basket-shopping text-5xl text-gray-200 mb-3"></i>
+
                         <p class="font-bold text-gray-600">No items found</p>
+
                         <p class="text-xs mt-1">Try typing cake, rice, medicines, kurta, shoes or burger.</p>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- ── TAB 3: FULL INTERACTIVE MAP ───────────────── -->
+
                 <div x-show="tab === 'mapview'" class="absolute inset-0 z-10 flex flex-col">
+
                     <div id="fullMainMap" class="w-full h-full bg-slate-100"></div>
 
+
+
                     <!-- Interactive Slide-up Bottom Sheet for Selected Store -->
+
                     <div x-show="activeMapShop" 
+
                          x-transition:enter="transition ease-out duration-300 transform"
+
                          x-transition:enter-start="opacity-0 translate-y-full"
+
                          x-transition:enter-end="opacity-100 translate-y-0"
+
                          x-transition:leave="transition ease-in duration-200 transform"
+
                          x-transition:leave-start="opacity-100 translate-y-0"
+
                          x-transition:leave-end="opacity-0 translate-y-full"
-                         class="absolute bottom-16 left-3 right-3 bg-white/95 backdrop-blur-lg rounded-3xl p-4 shadow-2xl border border-gray-100 z-[500] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+                         class="absolute bottom-16 left-3 right-3 bg-white/95 backdrop-blur-lg rounded-3xl p-4 shadow-2xl border border-gray-100 z-[500] flex flex-col gap-3">
+
                         
+
                         <!-- Top header row -->
+
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full" x-text="activeMapShop?.category"></span>
+
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full" x-text="activeMapShop?.category"></span>
+
                             <button @click="activeMapShop = null" class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 active:scale-95 transition">
+
                                 <i class="fa-solid fa-xmark text-xs"></i>
+
                             </button>
+
                         </div>
+
+
 
                         <!-- Store Details -->
+
                         <div class="flex items-center gap-3.5">
+
                             <img :src="activeMapShop?.image" class="w-16 h-16 rounded-2xl object-cover shrink-0 border border-gray-100 shadow-sm">
+
                             <div class="flex-1 min-w-0">
+
                                 <div class="flex items-center justify-between gap-1">
+
                                     <h4 class="font-extrabold text-gray-900 text-sm truncate" x-text="activeMapShop?.business_name"></h4>
+
                                     <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 uppercase"
-                                          :class="activeMapShop?.is_open ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'"
+
+                                          :class="activeMapShop?.is_open ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
+
                                           x-text="activeMapShop?.is_open ? 'OPEN' : 'CLOSED'"></span>
+
                                 </div>
+
                                 
+
                                 <div class="flex items-center gap-2 mt-1">
+
                                     <div class="flex items-center gap-1 text-[11px] font-black text-amber-500">
+
                                         <i class="fa-solid fa-star text-[10px]"></i>
+
                                         <span x-text="activeMapShop?.rating"></span>
+
                                     </div>
+
                                     <span class="text-gray-300">•</span>
+
                                     <div class="text-[11px] font-bold text-gray-700 flex items-center gap-1">
-                                        <i class="fa-solid fa-location-dot text-blue-600 text-[10px]"></i>
+
+                                        <i class="fa-solid fa-location-dot text-indigo-600 text-[10px]"></i>
+
                                         <span x-text="activeMapShop?.distance_formatted || (activeMapShop?.distance_km + ' km away')"></span>
+
                                         <span class="text-[10px] text-gray-400 font-medium" x-show="activeMapShop?.time_estimate" x-text="'• ' + activeMapShop?.time_estimate"></span>
+
                                     </div>
+
                                 </div>
+
+
 
                                 <p class="text-[11px] text-gray-400 font-medium truncate mt-0.5" x-text="activeMapShop?.address"></p>
+
                             </div>
+
                         </div>
+
+
 
                         <!-- Action Button -->
-                        <button @click="openShopProfile(activeMapShop)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition flex items-center justify-center gap-2">
+
+                        <button @click="openShopProfile(activeMapShop)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs py-3 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+
                             <span>View Shop & Products</span>
+
                             <i class="fa-solid fa-arrow-right text-xs"></i>
+
                         </button>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- ── TAB 4: ORDERS ─────────────────────────────── -->
+
                 <div x-show="tab === 'orders'" class="p-5 flex flex-col gap-4 pb-28">
+
                     <h3 class="font-black text-gray-900 text-2xl">My Orders</h3>
 
+
+
                     <div x-show="orders.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
-                        <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center text-blue-400 mb-4">
+
+                        <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400 mb-4">
+
                             <i class="fa-solid fa-receipt text-4xl"></i>
+
                         </div>
+
                         <h4 class="font-bold text-gray-800 text-lg">No orders yet</h4>
+
                         <p class="text-xs text-gray-400 max-w-[220px] mt-1 mb-6">Discover local shops and order delicious baked goods, groceries or medicines!</p>
-                        <button @click="tab = 'home'" class="bg-blue-600 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-blue-200 active:scale-95">
+
+                        <button @click="tab = 'home'" class="bg-indigo-600 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95">
+
                             Start Shopping Local
+
                         </button>
+
                     </div>
+
+
 
                     <div x-show="orders.length > 0" class="flex flex-col gap-3.5">
+
                         <template x-for="order in orders" :key="order.order_id || order.id">
+
                             <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col gap-3">
+
                                 <div class="flex justify-between items-start border-b border-gray-50 pb-2.5">
+
                                     <div>
+
                                         <h4 class="font-extrabold text-gray-900 text-base" x-text="order.business_name || order.vendorName"></h4>
+
                                         <span class="text-[11px] text-gray-400 font-semibold" x-text="'Order #' + (order.order_id || order.id)"></span>
+
                                     </div>
-                                    <span class="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700">
+
+                                    <span class="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-700">
+
                                         Confirmed & Preparing
+
                                     </span>
+
                                 </div>
+
+
 
                                 <div class="flex flex-col gap-1 text-xs text-gray-600">
+
                                     <template x-for="item in (order.items || [])" :key="item.product_name || item.name">
+
                                         <div class="flex justify-between">
+
                                             <span><span x-text="item.quantity"></span>x <span x-text="item.product_name || item.name"></span></span>
+
                                             <span class="font-bold">₹<span x-text="(item.price * item.quantity)"></span></span>
+
                                         </div>
+
                                     </template>
+
                                 </div>
+
+
 
                                 <div class="flex justify-between items-center pt-2 border-t border-gray-50 text-sm">
+
                                     <span class="text-xs text-gray-400 font-bold">Total Paid (Demo)</span>
+
                                     <span class="font-black text-gray-900 text-base">₹<span x-text="order.total_amount || order.total"></span></span>
+
                                 </div>
+
                             </div>
+
                         </template>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- ── TAB 5: PROFILE ────────────────────────────── -->
+
                 <div x-show="tab === 'profile'" class="p-5 flex flex-col gap-5 pb-28">
+
                     <h3 class="font-black text-gray-900 text-2xl">My Account</h3>
 
-                    <div class="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-3xl p-5 shadow-lg flex items-center gap-4">
+
+
+                    <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-3xl p-5 shadow-lg flex items-center gap-4">
+
                         <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-black text-white">
+
                             <span x-text="(currentUser.name || 'U')[0].toUpperCase()"></span>
+
                         </div>
+
                         <div>
+
                             <h4 class="font-black text-lg text-white" x-text="currentUser.name || 'Local Customer'"></h4>
-                            <p class="text-xs text-blue-100 font-semibold" x-text="currentUser.phone || currentUser.email || '+91 9876543210'"></p>
+
+                            <p class="text-xs text-indigo-100 font-semibold" x-text="currentUser.phone || currentUser.email || '+91 9876543210'"></p>
+
                             <span class="inline-block mt-1 text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-md">Verified Local User</span>
+
                         </div>
+
                     </div>
+
+
 
                     <div class="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm flex flex-col divide-y divide-gray-50">
+
                         <button @click="screen = 'location'" class="p-4 flex items-center justify-between text-left hover:bg-gray-50">
+
                             <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-location-dot text-blue-600 text-lg w-6"></i>
+
+                                <i class="fa-solid fa-location-dot text-indigo-600 text-lg w-6"></i>
+
                                 <div>
+
                                     <div class="font-bold text-sm text-gray-800">Change Delivery Location</div>
+
                                     <div class="text-xs text-gray-400" x-text="userAddr || 'Not Set'"></div>
+
                                 </div>
+
                             </div>
+
                             <i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>
+
                         </button>
+
+
 
                         <a href="/vendor" class="p-4 flex items-center justify-between text-left hover:bg-gray-50">
+
                             <div class="flex items-center gap-3">
+
                                 <i class="fa-solid fa-store text-purple-600 text-lg w-6"></i>
+
                                 <div>
+
                                     <div class="font-bold text-sm text-gray-800">Vendor Partner Dashboard</div>
+
                                     <div class="text-xs text-gray-400">Manage products, orders & active offers</div>
+
                                 </div>
+
                             </div>
+
                             <i class="fa-solid fa-arrow-up-right-from-square text-xs text-gray-300"></i>
+
                         </a>
 
+
+
                         <button @click="logout()" class="p-4 flex items-center justify-between text-left hover:bg-rose-50 text-rose-600">
+
                             <div class="flex items-center gap-3">
+
                                 <i class="fa-solid fa-arrow-right-from-bracket text-lg w-6"></i>
+
                                 <span class="font-bold text-sm">Sign Out</span>
+
                             </div>
+
                             <i class="fa-solid fa-chevron-right text-xs text-rose-300"></i>
+
                         </button>
+
                     </div>
+
+
 
                     <!-- App Mission Statement -->
-                    <div class="bg-blue-50/70 rounded-3xl p-5 border border-blue-100 text-center mt-4">
-                        <i class="fa-solid fa-heart text-blue-600 text-2xl mb-2"></i>
+
+                    <div class="bg-indigo-50/70 rounded-3xl p-5 border border-indigo-100 text-center mt-4">
+
+                        <i class="fa-solid fa-heart text-indigo-600 text-2xl mb-2"></i>
+
                         <h5 class="font-black text-gray-900 text-sm">"When local businesses grow, communities grow."</h5>
+
                         <p class="text-xs text-gray-500 mt-1 font-medium leading-relaxed">LocalLift empowers small local vendors with digital visibility without charging predatory commissions.</p>
+
                     </div>
+
                 </div>
 
+
+
             </div>
+
+
 
             <!-- FLOATING VIEW CART BAR (WHEN CART > 0) -->
+
             <div x-show="cartTotalCount > 0" 
+
                  x-transition:enter="transition ease-out duration-300"
+
                  x-transition:enter-start="opacity-0 translate-y-10"
+
                  x-transition:enter-end="opacity-100 translate-y-0"
+
                  class="absolute bottom-20 left-4 right-4 z-30">
+
                 <button @click="cartDrawerOpen = true" 
+
                         class="w-full bg-gray-900 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center active:scale-[0.98] transition border border-gray-700">
+
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xs text-white" x-text="cartTotalCount"></div>
+
+                        <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xs text-white" x-text="cartTotalCount"></div>
+
                         <div class="text-left">
+
                             <div class="font-extrabold text-sm">View Cart</div>
+
                             <div class="text-[11px] text-gray-300" x-text="cartVendorName"></div>
+
                         </div>
+
                     </div>
+
                     <div class="flex items-center gap-2 font-black text-base">
+
                         <span>₹<span x-text="cartTotalAmount"></span></span>
+
                         <i class="fa-solid fa-chevron-right text-xs"></i>
+
                     </div>
+
                 </button>
+
             </div>
+
+
 
             <!-- BOTTOM NAVIGATION BAR -->
+
             <nav class="bg-white border-t border-gray-100 px-3 py-2 flex justify-around items-center z-20 flex-shrink-0">
+
                 <button @click="tab = 'home'" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
-                        :class="tab === 'home' ? 'text-blue-600 font-extrabold' : 'text-gray-400 font-medium'">
+
+                        :class="tab === 'home' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+
                     <i class="fa-solid fa-house text-lg mb-0.5"></i>
+
                     <span class="text-[10px]">Home</span>
+
                 </button>
+
+
 
                 <button @click="tab = 'explore'; executeSearch()" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
-                        :class="tab === 'explore' ? 'text-blue-600 font-extrabold' : 'text-gray-400 font-medium'">
+
+                        :class="tab === 'explore' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+
                     <i class="fa-solid fa-compass text-lg mb-0.5"></i>
+
                     <span class="text-[10px]">Explore</span>
+
                 </button>
+
+
 
                 <button @click="tab = 'mapview'; renderMainMap()" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
-                        :class="tab === 'mapview' ? 'text-blue-600 font-extrabold' : 'text-gray-400 font-medium'">
+
+                        :class="tab === 'mapview' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+
                     <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+
                     <span class="text-[10px]">Map</span>
+
                 </button>
+
+
 
                 <button @click="tab = 'orders'" class="flex flex-col items-center py-1 px-3 rounded-xl transition relative"
-                        :class="tab === 'orders' ? 'text-blue-600 font-extrabold' : 'text-gray-400 font-medium'">
+
+                        :class="tab === 'orders' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+
                     <i class="fa-solid fa-receipt text-lg mb-0.5"></i>
+
                     <span class="text-[10px]">Orders</span>
-                    <span x-show="orders.length > 0" class="absolute top-1 right-3 w-2 h-2 rounded-full bg-blue-600"></span>
+
+                    <span x-show="orders.length > 0" class="absolute top-1 right-3 w-2 h-2 rounded-full bg-indigo-600"></span>
+
                 </button>
+
+
 
                 <button @click="tab = 'profile'" class="flex flex-col items-center py-1 px-3 rounded-xl transition"
-                        :class="tab === 'profile' ? 'text-blue-600 font-extrabold' : 'text-gray-400 font-medium'">
+
+                        :class="tab === 'profile' ? 'text-indigo-600 font-extrabold' : 'text-gray-400 font-medium'">
+
                     <i class="fa-solid fa-user text-lg mb-0.5"></i>
+
                     <span class="text-[10px]">Profile</span>
+
                 </button>
+
             </nav>
+
         </div>
+
+
 
         <!-- ================= FULL SHOP PROFILE MODAL ================= -->
+
         <div x-show="shopModalOpen" 
+
              x-transition:enter="transition ease-out duration-300"
+
              x-transition:enter-start="opacity-0 translate-y-full"
+
              x-transition:enter-end="opacity-100 translate-y-0"
+
              x-transition:leave="transition ease-in duration-200"
+
              x-transition:leave-start="opacity-100 translate-y-0"
+
              x-transition:leave-end="opacity-0 translate-y-full"
-             class="fixed inset-0 z-50 bg-white flex flex-col w-full mx-auto overflow-hidden">
+
+             class="fixed inset-0 z-50 bg-white flex flex-col max-w-[430px] mx-auto overflow-hidden">
+
             
+
             <!-- Modal Header / Hero -->
+
             <div class="relative h-60 w-full bg-gray-900 shrink-0">
+
                 <img :src="activeShop?.image" class="w-full h-full object-cover opacity-85">
+
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
                 
+
                 <button @click="shopModalOpen = false" class="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur text-gray-900 flex items-center justify-center font-bold shadow-lg active:scale-95">
+
                     <i class="fa-solid fa-arrow-left"></i>
+
                 </button>
+
+
 
                 <!-- Shop info over image -->
+
                 <div class="absolute bottom-4 left-4 right-4 text-white">
-                    <span class="text-[10px] font-black uppercase tracking-wider bg-blue-600 px-2.5 py-0.5 rounded-md inline-block mb-1" x-text="activeShop?.category"></span>
+
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-indigo-600 px-2.5 py-0.5 rounded-md inline-block mb-1" x-text="activeShop?.category"></span>
+
                     <h3 class="text-2xl font-black leading-tight" x-text="activeShop?.business_name"></h3>
+
                     <div class="flex items-center gap-3 text-xs font-semibold mt-1 opacity-90">
+
                         <span class="flex items-center gap-1 text-yellow-400"><i class="fa-solid fa-star"></i> <span x-text="activeShop?.rating"></span></span>
+
                         <span>•</span>
+
                         <span x-text="activeShop?.distance_km + ' km away'"></span>
+
                         <span>•</span>
-                        <span class="text-blue-400 font-bold" x-text="activeShop?.is_open ? 'Open Now' : 'Closed'"></span>
+
+                        <span class="text-emerald-400 font-bold" x-text="activeShop?.is_open ? 'Open Now' : 'Closed'"></span>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Action Buttons: Call, Directions, Hours -->
+
             <div class="flex justify-around items-center py-3 bg-gray-50 border-b border-gray-100 text-xs font-bold shrink-0">
-                <a :href="'tel:' + activeShop?.phone" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+
+                <a :href="'tel:' + activeShop?.phone" class="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+
                     <i class="fa-solid fa-phone"></i> Call Shop
+
                 </a>
-                <a :href="'https://www.google.com/maps/search/?api=1&query=' + activeShop?.latitude + ',' + activeShop?.longitude" target="_blank" class="flex items-center gap-1.5 text-blue-700 hover:text-blue-900 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+
+                <a :href="'https://www.google.com/maps/search/?api=1&query=' + activeShop?.latitude + ',' + activeShop?.longitude" target="_blank" class="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-900 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+
                     <i class="fa-solid fa-diamond-turn-right"></i> Directions
+
                 </a>
+
                 <div class="text-gray-500 font-medium text-[11px] px-2">
+
                     <i class="fa-regular fa-clock"></i> <span x-text="activeShop?.opening_hours + ' - ' + activeShop?.closing_time"></span>
+
                 </div>
+
             </div>
+
+
 
             <!-- Shop Tab Switcher: Products vs About -->
+
             <div class="flex border-b border-gray-100 bg-white shrink-0">
+
                 <button @click="shopDetailTab = 'products'" 
+
                         class="flex-1 py-3 text-center text-xs font-extrabold border-b-2 transition"
-                        :class="shopDetailTab === 'products' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'">
+
+                        :class="shopDetailTab === 'products' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'">
+
                     Menu & Products (<span x-text="activeShopProducts.length"></span>)
+
                 </button>
+
                 <button @click="shopDetailTab = 'about'" 
+
                         class="flex-1 py-3 text-center text-xs font-extrabold border-b-2 transition"
-                        :class="shopDetailTab === 'about' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'">
+
+                        :class="shopDetailTab === 'about' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'">
+
                     About & Reviews
+
                 </button>
+
             </div>
+
+
 
             <!-- Shop Products Scroll Area -->
+
             <div class="flex-1 overflow-y-auto hide-scroll p-4 pb-28">
+
                 
+
                 <!-- Products List -->
+
                 <div x-show="shopDetailTab === 'products'" class="flex flex-col gap-3.5">
+
                     <template x-for="prod in activeShopProducts" :key="prod.product_id">
+
                         <div class="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex gap-3.5 items-center">
+
                             <img :src="prod.image" class="w-20 h-20 rounded-xl object-cover shrink-0">
+
                             
+
                             <div class="flex-1 min-w-0">
+
                                 <h4 class="font-extrabold text-gray-900 text-sm leading-tight line-clamp-1" x-text="prod.product_name"></h4>
+
                                 <p class="text-[11px] text-gray-400 line-clamp-2 mt-0.5" x-text="prod.description"></p>
-                                <div class="font-black text-blue-600 text-sm mt-1.5">₹<span x-text="prod.price"></span></div>
+
+                                <div class="font-black text-indigo-600 text-sm mt-1.5">₹<span x-text="prod.price"></span></div>
+
                             </div>
+
+
 
                             <!-- Add to Cart Controls -->
+
                             <div class="shrink-0">
+
                                 <div x-show="getCartItemQty(prod.product_id) === 0">
+
                                     <button @click="addItemToCart(prod, activeShop)" 
-                                            class="bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-extrabold text-xs px-3.5 py-2 rounded-xl border border-blue-200 transition active:scale-95">
+
+                                            class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-extrabold text-xs px-3.5 py-2 rounded-xl border border-indigo-200 transition active:scale-95">
+
                                         + ADD
+
                                     </button>
+
                                 </div>
 
-                                <div x-show="getCartItemQty(prod.product_id) > 0" class="flex items-center gap-2 bg-blue-600 text-white rounded-xl px-2 py-1 shadow-md">
+
+
+                                <div x-show="getCartItemQty(prod.product_id) > 0" class="flex items-center gap-2 bg-indigo-600 text-white rounded-xl px-2 py-1 shadow-md">
+
                                     <button @click="decrementCartQty(prod.product_id)" class="w-6 h-6 flex items-center justify-center font-bold active:scale-90">-</button>
+
                                     <span class="font-black text-xs" x-text="getCartItemQty(prod.product_id)"></span>
+
                                     <button @click="incrementCartQty(prod.product_id)" class="w-6 h-6 flex items-center justify-center font-bold active:scale-90">+</button>
+
                                 </div>
+
                             </div>
+
                         </div>
+
                     </template>
+
                 </div>
+
+
 
                 <!-- About & Reviews Tab -->
+
                 <div x-show="shopDetailTab === 'about'" class="flex flex-col gap-4 text-left">
+
                     <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+
                         <h4 class="font-bold text-gray-900 text-sm mb-1">About the Shop</h4>
+
                         <p class="text-xs text-gray-600 leading-relaxed" x-text="activeShop?.description"></p>
+
                         <div class="mt-3 text-xs text-gray-500">
+
                             <strong>Address:</strong> <span x-text="activeShop?.address"></span>
+
                         </div>
+
                     </div>
 
+
+
                     <div>
+
                         <h4 class="font-bold text-gray-900 text-sm mb-2.5">Customer Reviews</h4>
+
                         <div class="flex flex-col gap-2.5">
+
                             <template x-for="r in activeShopReviews" :key="r.review_id">
+
                                 <div class="bg-white p-3.5 rounded-2xl border border-gray-100">
+
                                     <div class="flex justify-between items-center mb-1">
+
                                         <span class="font-bold text-xs text-gray-900" x-text="r.user_name"></span>
+
                                         <div class="text-yellow-500 text-[10px]"><i class="fa-solid fa-star"></i> <span x-text="r.rating"></span></div>
+
                                     </div>
+
                                     <p class="text-xs text-gray-600" x-text="r.comment"></p>
+
                                 </div>
+
                             </template>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- View Cart Footer inside Shop Modal -->
+
             <div x-show="cartTotalCount > 0" class="p-4 bg-white border-t border-gray-100 shrink-0">
-                <button @click="cartDrawerOpen = true" class="w-full bg-blue-600 text-white font-extrabold py-3.5 rounded-2xl shadow-xl flex justify-between px-5 items-center active:scale-95 transition">
+
+                <button @click="cartDrawerOpen = true" class="w-full bg-indigo-600 text-white font-extrabold py-3.5 rounded-2xl shadow-xl flex justify-between px-5 items-center active:scale-95 transition">
+
                     <span x-text="cartTotalCount + ' Items in Cart'"></span>
+
                     <span>Proceed to Order ₹<span x-text="cartTotalAmount"></span> →</span>
+
                 </button>
+
             </div>
+
         </div>
+
+
 
         <!-- ================= CART & CHECKOUT DRAWER ================= -->
+
         <div x-show="cartDrawerOpen" 
+
              x-transition.opacity
-             class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end w-full mx-auto">
+
+             class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end max-w-[430px] mx-auto">
+
             
+
             <div class="bg-white rounded-t-[32px] p-6 max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+
                 <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+
                     <div>
+
                         <h3 class="font-black text-gray-900 text-lg">Your Cart</h3>
+
                         <p class="text-xs text-gray-400" x-text="cartVendorName"></p>
+
                     </div>
+
                     <button @click="cartDrawerOpen = false" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
+
                         <i class="fa-solid fa-times"></i>
+
                     </button>
+
                 </div>
+
+
 
                 <!-- Items List -->
+
                 <div class="flex-1 overflow-y-auto hide-scroll flex flex-col gap-3 my-2">
+
                     <template x-for="item in cartItems" :key="item.product_id">
+
                         <div class="flex justify-between items-center py-2 border-b border-gray-50">
+
                             <div>
+
                                 <h5 class="font-bold text-sm text-gray-900" x-text="item.product_name"></h5>
-                                <span class="text-xs text-blue-600 font-extrabold">₹<span x-text="item.price"></span> each</span>
+
+                                <span class="text-xs text-indigo-600 font-extrabold">₹<span x-text="item.price"></span> each</span>
+
                             </div>
+
                             
-                            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl px-2 py-1 font-bold">
+
+                            <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl px-2 py-1 font-bold">
+
                                 <button @click="decrementCartQty(item.product_id)" class="w-6 h-6 flex items-center justify-center font-black">-</button>
+
                                 <span class="text-xs font-black" x-text="item.quantity"></span>
+
                                 <button @click="incrementCartQty(item.product_id)" class="w-6 h-6 flex items-center justify-center font-black">+</button>
+
                             </div>
+
                         </div>
+
                     </template>
+
                 </div>
+
+
 
                 <!-- Bill Details -->
+
                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 my-3 flex flex-col gap-1.5 text-xs text-gray-600">
+
                     <div class="flex justify-between">
+
                         <span>Items Total</span>
+
                         <span class="font-bold">₹<span x-text="cartTotalAmount"></span></span>
+
                     </div>
+
                     <div class="flex justify-between">
+
                         <span>Local Delivery Partner Fee</span>
-                        <span class="font-bold text-blue-600">FREE (Demo)</span>
+
+                        <span class="font-bold text-emerald-600">FREE (Demo)</span>
+
                     </div>
+
                     <div class="flex justify-between pt-2 border-t border-gray-200 text-sm font-black text-gray-900">
+
                         <span>Grand Total</span>
+
                         <span>₹<span x-text="cartTotalAmount"></span></span>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Note -->
-                <input type="text" x-model="orderNote" placeholder="Instructions (e.g. Call before arrival)" class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold mb-4 focus:outline-none focus:border-blue-600">
 
-                <button @click="submitOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-xl shadow-blue-200 active:scale-95 transition flex items-center justify-center gap-2">
+                <input type="text" x-model="orderNote" placeholder="Instructions (e.g. Call before arrival)" class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-semibold mb-4 focus:outline-none focus:border-indigo-600">
+
+
+
+                <button @click="submitOrder()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-95 transition flex items-center justify-center gap-2">
+
                     <i class="fa-solid fa-bag-shopping"></i>
+
                     <span>Place Order (Pay on Delivery / UPI)</span>
+
                 </button>
+
             </div>
+
         </div>
+
+
 
         <!-- ================= ORDER SUCCESS MODAL ================= -->
+
         <div x-show="orderSuccessOpen" 
+
              x-transition.opacity
-             class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-6 w-full mx-auto">
+
+             class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-6 max-w-[430px] mx-auto">
+
             
+
             <div class="bg-white rounded-[32px] p-6 text-center shadow-2xl flex flex-col items-center w-full max-w-[340px]">
-                <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-blue-100 animate-bounce">
+
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-emerald-100 animate-bounce">
+
                     <i class="fa-solid fa-circle-check"></i>
-                </div>
-                
-                <h3 class="text-2xl font-black text-gray-900 mb-1">Order Placed Successfully!</h3>
-                <p class="text-xs text-gray-500 font-medium mb-4">The shop has accepted your order and is packing your fresh items now.</p>
-                
-                <div class="bg-blue-50 p-3 rounded-2xl w-full text-xs font-bold text-blue-700 mb-5">
-                    Order ID: #<span x-text="lastOrderId"></span>
+
                 </div>
 
+                
+
+                <h3 class="text-2xl font-black text-gray-900 mb-1">Order Placed Successfully!</h3>
+
+                <p class="text-xs text-gray-500 font-medium mb-4">The shop has accepted your order and is packing your fresh items now.</p>
+
+                
+
+                <div class="bg-indigo-50 p-3 rounded-2xl w-full text-xs font-bold text-indigo-700 mb-5">
+
+                    Order ID: #<span x-text="lastOrderId"></span>
+
+                </div>
+
+
+
                 <button @click="orderSuccessOpen = false; shopModalOpen = false; cartDrawerOpen = false; tab = 'orders'" 
-                        class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-blue-200 active:scale-95">
+
+                        class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95">
+
                     View in My Orders
+
                 </button>
+
             </div>
+
         </div>
+
+
 
     </div>
 
+
+
     <!-- APP SCRIPT -->
+
     <script>
-        function LocalLiftApp() {
+
+        function localLiftApp() {
+
             return {
+
                 screen: 'splash', // splash, login, location, map_confirm, main
+
                 tab: 'home',      // home, explore, mapview, orders, profile
+
                 loginMode: 'options',
+
                 otpSent: false,
+
                 locatingGps: false,
+
                 showManualSearch: false,
+
                 manualQuery: '',
+
                 
+
                 // User & Location State
+
                 currentUser: { name: 'Local Customer', phone: '+91 9876543210' },
+
                 userLat: 28.6139,
+
                 userLon: 77.2090,
+
                 userAddr: 'Detecting Location...',
+
                 gpsAccuracy: null,
+
                 gpsCoordsText: '',
+
                 selectedRadius: 2.0,
+
                 autoExpanded: false,
+
                 radiusOptions: [
+
                     { label: 'Within 500 m', value: 0.5 },
+
                     { label: 'Within 1 km', value: 1.0 },
+
                     { label: 'Within 2 km', value: 2.0 },
+
                     { label: 'Within 5 km', value: 5.0 },
+
                     { label: 'All nearby (10 km)', value: 10.0 }
+
                 ],
+
                 confirmLoc: { title: '', fullAddress: '', lat: 28.6139, lon: 77.2090, accuracy: null },
 
+
+
                 // Data Stores
+
                 vendors: [],
+
                 offers: [],
+
                 orders: [],
+
                 searchResults: { vendors: [], products: [] },
+
                 selectedCategory: '',
+
                 searchQuery: '',
 
+
+
                 // Cart Store
+
                 cartItems: [],
+
                 cartVendorId: null,
+
                 cartVendorName: '',
+
                 cartDrawerOpen: false,
+
                 orderNote: '',
+
                 lastOrderId: '1001',
+
                 orderSuccessOpen: false,
 
+
+
                 // Shop Detail Modal
+
                 shopModalOpen: false,
+
                 shopDetailTab: 'products',
+
                 activeShop: null,
+
                 activeShopProducts: [],
+
                 activeShopReviews: [],
 
+
+
                 // Map instances
+
                 confirmMapObj: null,
+
                 confirmMarkerObj: null,
+
                 confirmCircleObj: null,
+
                 mainMapObj: null,
+
                 mainAccuracyCircleObj: null,
+
                 mainUserMarkerObj: null,
+
                 mainStoreMarkers: [],
+
                 activeMapShop: null,
 
+
+
                 // 16 Full Categories
+
                 categoryList: [
+
                     { name: 'Bakery', icon: 'fa-bread-slice', bgColor: 'bg-amber-100', textColor: 'text-amber-600' },
-                    { name: 'Grocery', icon: 'fa-basket-shopping', bgColor: 'bg-blue-100', textColor: 'text-blue-600' },
+
+                    { name: 'Grocery', icon: 'fa-basket-shopping', bgColor: 'bg-emerald-100', textColor: 'text-emerald-600' },
+
                     { name: 'Restaurant', icon: 'fa-utensils', bgColor: 'bg-rose-100', textColor: 'text-rose-600' },
+
                     { name: 'Clothing', icon: 'fa-shirt', bgColor: 'bg-pink-100', textColor: 'text-pink-600' },
+
                     { name: 'Pharmacy', icon: 'fa-prescription-bottle-medical', bgColor: 'bg-blue-100', textColor: 'text-blue-600' },
+
                     { name: 'Electronics', icon: 'fa-mobile-screen', bgColor: 'bg-cyan-100', textColor: 'text-cyan-600' },
-                    { name: 'Stationery', icon: 'fa-pen-nib', bgColor: 'bg-blue-100', textColor: 'text-blue-600' },
+
+                    { name: 'Stationery', icon: 'fa-pen-nib', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600' },
+
                     { name: 'Beauty', icon: 'fa-wand-magic-sparkles', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600' },
+
                     { name: 'Hardware', icon: 'fa-hammer', bgColor: 'bg-stone-100', textColor: 'text-stone-600' },
+
                     { name: 'Fruits & Vegetables', icon: 'fa-carrot', bgColor: 'bg-lime-100', textColor: 'text-lime-600' },
+
                     { name: 'Footwear', icon: 'fa-shoe-prints', bgColor: 'bg-teal-100', textColor: 'text-teal-600' },
+
                     { name: 'Flowers', icon: 'fa-seedling', bgColor: 'bg-red-100', textColor: 'text-red-500' },
+
                     { name: 'Pet Supplies', icon: 'fa-paw', bgColor: 'bg-orange-100', textColor: 'text-orange-600' },
+
                     { name: 'Home Services', icon: 'fa-screwdriver-wrench', bgColor: 'bg-sky-100', textColor: 'text-sky-600' },
+
                     { name: 'Dairy & Sweets', icon: 'fa-cheese', bgColor: 'bg-yellow-100', textColor: 'text-yellow-600' },
+
                     { name: 'Cafe & Snacks', icon: 'fa-mug-hot', bgColor: 'bg-purple-100', textColor: 'text-purple-600' },
+
                 ],
 
+
+
                 loginForm: { phone: '', email: '', password: '', otp1: '', otp2: '', otp3: '', otp4: '' },
+
                 toast: { show: false, message: '', type: 'info' },
 
+
+
                 // ── INIT ──────────────────────────────────────────────
+
                 async init() {
+
                     // Register PWA service worker
+
                     if ('serviceWorker' in navigator) {
+
                         try { navigator.serviceWorker.register('/sw.js'); } catch(e){}
+
                     }
+
+
 
                     // Check saved session
-                    const savedUser = localStorage.getItem('LocalLift_user');
-                    const savedLoc = localStorage.getItem('LocalLift_location');
+
+                    const savedUser = localStorage.getItem('locallift_user');
+
+                    const savedLoc = localStorage.getItem('locallift_location');
+
+
 
                     if (savedUser) {
+
                         try { this.currentUser = JSON.parse(savedUser); } catch(e){}
+
                     }
+
+
 
                     if (savedLoc) {
+
                         try {
+
                             const parsedLoc = JSON.parse(savedLoc);
+
                             this.userLat = parsedLoc.lat;
+
                             this.userLon = parsedLoc.lon;
+
                             this.userAddr = parsedLoc.addr;
+
                         } catch(e){}
+
                     }
+
+
 
                     // Load saved cart & orders
-                    const savedOrders = localStorage.getItem('LocalLift_orders');
+
+                    const savedOrders = localStorage.getItem('locallift_orders') || localStorage.getItem('LocalLift_orders');
+
                     if (savedOrders) {
+
                         try { this.orders = JSON.parse(savedOrders); } catch(e){}
+
                     }
+
+
 
                     setTimeout(async () => {
+
                         if (savedUser && savedLoc) {
+
                             await this.fetchHyperlocalData();
+
                             this.screen = 'main';
+
                         } else if (savedUser) {
+
                             this.screen = 'location';
+
                         } else {
+
                             this.screen = 'login';
+
                         }
+
                     }, 1800);
+
                 },
+
+
 
                 showToast(msg, type='info') {
+
                     this.toast.message = msg;
+
                     this.toast.type = type;
+
                     this.toast.show = true;
+
                     setTimeout(() => { this.toast.show = false; }, 3200);
+
                 },
+
+
 
                 getOfferGradient(id) {
+
                     const grads = [
-                        'bg-gradient-to-br from-blue-600 to-purple-600',
-                        'bg-gradient-to-br from-blue-600 to-teal-600',
+
+                        'bg-gradient-to-br from-indigo-600 to-purple-600',
+
+                        'bg-gradient-to-br from-emerald-600 to-teal-600',
+
                         'bg-gradient-to-br from-rose-500 to-pink-600',
+
                         'bg-gradient-to-br from-amber-500 to-orange-600',
+
                         'bg-gradient-to-br from-cyan-600 to-blue-600'
+
                     ];
+
                     return grads[(id || 0) % grads.length];
+
                 },
+
+
 
                 // ── AUTHENTICATION ────────────────────────────────────
+
                 loginWithGoogle() {
+
                     this.currentUser = { name: 'Google User', email: 'user@gmail.com', user_type: 'customer' };
-                    localStorage.setItem('LocalLift_user', JSON.stringify(this.currentUser));
+
+                    localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+
                     this.showToast('Signed in successfully with Google! 🎉', 'success');
+
                     this.screen = 'location';
+
                 },
+
+
 
                 sendOtp() {
+
                     if (!this.loginForm.phone || this.loginForm.phone.length < 10) {
+
                         this.showToast('Please enter a valid 10-digit mobile number', 'error');
+
                         return;
+
                     }
+
                     this.otpSent = true;
+
                     this.showToast('OTP code sent to your phone: 1234', 'info');
+
                     setTimeout(() => { document.getElementById('otp-1')?.focus(); }, 200);
+
                 },
+
+
 
                 verifyOtp() {
+
                     const enteredOtp = `${this.loginForm.otp1}${this.loginForm.otp2}${this.loginForm.otp3}${this.loginForm.otp4}`;
+
                     if (enteredOtp === '1234' || enteredOtp.length === 4) {
+
                         this.currentUser = { name: 'Customer (' + this.loginForm.phone.slice(-4) + ')', phone: '+91 ' + this.loginForm.phone, user_type: 'customer' };
-                        localStorage.setItem('LocalLift_user', JSON.stringify(this.currentUser));
+
+                        localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+
                         this.showToast('Phone verified successfully! 🎉', 'success');
+
                         this.screen = 'location';
+
                     } else {
+
                         this.showToast('Invalid OTP! Please enter 1234', 'error');
+
                     }
+
                 },
+
+
 
                 async loginWithEmail() {
-                    const email = this.loginForm.email || 'customer@LocalLift.com';
+
+                    const email = this.loginForm.email || 'customer@locallift.com';
+
                     const password = this.loginForm.password || 'password123';
+
                     
+
                     try {
+
                         const res = await fetch('/api/auth/login', {
+
                             method: 'POST',
+
                             headers: { 'Content-Type': 'application/json' },
+
                             body: JSON.stringify({ email, password })
+
                         });
+
                         const data = await res.json();
+
                         if (data.success) {
+
                             this.currentUser = data;
-                            localStorage.setItem('LocalLift_user', JSON.stringify(this.currentUser));
+
+                            localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+
                             this.showToast('Welcome back, ' + data.name + '!', 'success');
+
                             this.screen = 'location';
+
                         } else {
+
                             this.showToast(data.error || 'Invalid credentials', 'error');
+
                         }
+
                     } catch(e) {
+
                         // Fallback demo
+
                         this.currentUser = { name: 'Rahul Sharma', email: email, user_type: 'customer' };
-                        localStorage.setItem('LocalLift_user', JSON.stringify(this.currentUser));
+
+                        localStorage.setItem('locallift_user', JSON.stringify(this.currentUser));
+
                         this.screen = 'location';
+
                     }
+
                 },
+
+
 
                 logout() {
-                    localStorage.removeItem('LocalLift_user');
-                    localStorage.removeItem('LocalLift_location');
+
+                    localStorage.removeItem('locallift_user');
+
+                    localStorage.removeItem('locallift_location');
+
                     this.currentUser = { name: 'Local Customer' };
+
                     this.screen = 'login';
+
                     this.showToast('Signed out successfully', 'info');
+
                 },
+
+
 
                 // ── LOCATION & MAP PICKER ─────────────────────────────
+
                 requestLiveLocation() {
+
                     this.locatingGps = true;
+
                     this.showToast('Acquiring high-precision GPS lock...', 'info');
 
+
+
                     if (!navigator.geolocation) {
+
                         this.fallbackIpLocation();
+
                         return;
+
                     }
+
+
 
                     // High-accuracy hardware GPS request
+
                     navigator.geolocation.getCurrentPosition(
+
                         async (pos) => {
+
                             this.locatingGps = false;
+
                             const lat = pos.coords.latitude;
+
                             const lon = pos.coords.longitude;
+
                             this.gpsAccuracy = Math.round(pos.coords.accuracy || 15);
+
                             this.gpsCoordsText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
                             this.showToast(`GPS locked (±${this.gpsAccuracy}m precision)`, 'success');
+
                             await this.openMapConfirmation(lat, lon, '', this.gpsAccuracy);
+
                         },
+
                         async (err) => {
+
                             console.log('High-accuracy GPS failed or timed out, trying IP fallback:', err);
+
                             await this.fallbackIpLocation();
+
                         },
+
                         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+
                     );
+
                 },
+
+
 
                 async fallbackIpLocation() {
+
                     try {
+
                         const res = await fetch('https://ipapi.co/json/');
+
                         const data = await res.json();
+
                         this.locatingGps = false;
+
                         if (data && data.latitude && data.longitude) {
+
                             const cityName = data.city || data.region || 'Local Area';
+
                             this.gpsAccuracy = 50;
+
                             this.showToast('Detected ' + cityName + ' area! Adjust pin on map.', 'info');
+
                             await this.openMapConfirmation(data.latitude, data.longitude, cityName, 50);
+
                             return;
+
                         }
+
                     } catch(e) {
+
                         try {
+
                             const res2 = await fetch('https://freeipapi.com/api/json');
+
                             const data2 = await res2.json();
+
                             this.locatingGps = false;
+
                             if (data2 && data2.latitude) {
+
                                 const cName = data2.cityName || 'Local City';
+
                                 this.gpsAccuracy = 50;
+
                                 this.showToast('Detected ' + cName + ' area! Adjust pin on map.', 'info');
+
                                 await this.openMapConfirmation(data2.latitude, data2.longitude, cName, 50);
+
                                 return;
+
                             }
+
                         } catch(e2){}
+
                     }
+
+
 
                     // Default fallback: Ludhiana / Delhi
+
                     this.locatingGps = false;
+
                     this.gpsAccuracy = 75;
+
                     this.showToast('Opening map. Drag pin to pinpoint your street.', 'info');
+
                     await this.openMapConfirmation(30.9010, 75.8573, 'Ludhiana, Punjab', 75);
+
                 },
+
+
 
                 async geocodeManualLocation() {
+
                     if (!this.manualQuery || this.manualQuery.length < 2) {
+
                         this.showToast('Please enter a city or colony name', 'error');
+
                         return;
+
                     }
 
+
+
                     this.showToast('Finding ' + this.manualQuery + '...', 'info');
+
                     try {
+
                         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(this.manualQuery)}&limit=1&accept-language=en`);
+
                         const data = await res.json();
+
                         if (data && data.length > 0) {
+
                             const lat = parseFloat(data[0].lat);
+
                             const lon = parseFloat(data[0].lon);
+
                             await this.openMapConfirmation(lat, lon, data[0].display_name, 35);
+
                         } else {
+
                             await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery, 35);
+
                         }
+
                     } catch(e) {
+
                         await this.openMapConfirmation(28.6139, 77.2090, this.manualQuery, 35);
+
                     }
+
                 },
+
+
 
                 mapSearchInput: '',
 
+
+
                 recenterHardwareGPS() {
+
                     this.locatingGps = true;
+
                     this.showToast('Locking hardware GPS...', 'info');
 
+
+
                     if (!navigator.geolocation) {
+
                         this.showToast('GPS not available on this device', 'error');
+
                         this.locatingGps = false;
+
                         return;
+
                     }
+
+
 
                     navigator.geolocation.getCurrentPosition(
+
                         async (pos) => {
+
                             this.locatingGps = false;
+
                             const lat = pos.coords.latitude;
+
                             const lon = pos.coords.longitude;
+
                             this.gpsAccuracy = Math.round(pos.coords.accuracy || 15);
+
                             this.gpsCoordsText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
                             this.confirmLoc.lat = lat;
+
                             this.confirmLoc.lon = lon;
+
                             this.confirmLoc.accuracy = this.gpsAccuracy;
+
                             this.showToast(`GPS position locked (±${this.gpsAccuracy}m)`, 'success');
 
+
+
                             if (this.confirmMapObj && this.confirmMarkerObj) {
+
                                 this.confirmMapObj.setView([lat, lon], 17);
+
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
+
                                 if (this.confirmCircleObj) {
+
                                     this.confirmCircleObj.setLatLng([lat, lon]);
+
                                     this.confirmCircleObj.setRadius(this.gpsAccuracy || 25);
+
                                 }
+
                                 await this.reverseGeocode(lat, lon);
+
                             } else {
+
                                 await this.openMapConfirmation(lat, lon, '', this.gpsAccuracy);
+
                             }
+
                         },
+
                         (err) => {
+
                             this.locatingGps = false;
+
                             this.showToast('Please enable Location Services in device settings', 'error');
+
                         },
+
                         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+
                     );
+
                 },
+
+
 
                 async searchMapLocation() {
+
                     const query = this.mapSearchInput.trim();
+
                     if (!query || query.length < 2) {
+
                         this.showToast('Type a city or street to search', 'error');
+
                         return;
+
                     }
+
+
 
                     this.showToast('Searching for ' + query + '...', 'info');
+
                     try {
+
                         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=1&accept-language=en`);
+
                         const data = await res.json();
+
                         if (data && data.length > 0) {
+
                             const lat = parseFloat(data[0].lat);
+
                             const lon = parseFloat(data[0].lon);
+
                             this.confirmLoc.lat = lat;
+
                             this.confirmLoc.lon = lon;
+
                             this.confirmLoc.title = data[0].display_name.split(',')[0];
+
                             this.confirmLoc.fullAddress = data[0].display_name;
 
+
+
                             if (this.confirmMapObj && this.confirmMarkerObj) {
+
                                 this.confirmMapObj.setView([lat, lon], 16);
+
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
+
                                 if (this.confirmCircleObj) {
+
                                     this.confirmCircleObj.setLatLng([lat, lon]);
+
                                 }
+
                             } else {
+
                                 await this.openMapConfirmation(lat, lon, data[0].display_name, 30);
+
                             }
+
                             this.showToast('Map centered at ' + this.confirmLoc.title, 'success');
+
                         } else {
+
                             this.showToast('Location not found. Try entering city name.', 'error');
+
                         }
+
                     } catch(e) {
+
                         this.showToast('Search network error', 'error');
+
                     }
+
                 },
 
+
+
                 async openMapConfirmation(lat, lon, knownTitle = '', accuracy = null) {
+
                     this.confirmLoc.lat = lat;
+
                     this.confirmLoc.lon = lon;
+
                     this.confirmLoc.accuracy = accuracy || this.gpsAccuracy || 20;
+
                     this.confirmLoc.title = knownTitle ? knownTitle.split(',')[0] : 'Locating Area...';
+
                     this.confirmLoc.fullAddress = knownTitle || 'Fetching street details...';
+
                     this.screen = 'map_confirm';
 
+
+
                     this.$nextTick(() => {
+
                         setTimeout(() => {
+
                             const el = document.getElementById('confirmMapEl');
+
                             if (!el) return;
 
+
+
                             if (!this.confirmMapObj) {
+
                                 this.confirmMapObj = L.map('confirmMapEl', { zoomControl: false }).setView([lat, lon], 16);
+
                                 
+
                                 // Google Maps Standard HD Tiles
+
                                 L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+
                                     maxZoom: 20,
+
                                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+
                                     attribution: 'Map data &copy; Google Maps'
+
                                 }).addTo(this.confirmMapObj);
+
+
 
                                 // Draw Accuracy Circle
+
                                 this.confirmCircleObj = L.circle([lat, lon], {
+
                                     radius: this.confirmLoc.accuracy || 25,
+
                                     color: '#3b82f6',
+
                                     fillColor: '#60a5fa',
+
                                     fillOpacity: 0.18,
+
                                     weight: 1.5
+
                                 }).addTo(this.confirmMapObj);
 
+
+
                                 const pinIcon = L.divIcon({
+
                                     className: '',
+
                                     html: '<div class="shop-map-pin bg-rose-600 shadow-xl border-2 border-white"><i class="fa-solid fa-location-dot"></i></div>',
+
                                     iconSize: [38, 38],
+
                                     iconAnchor: [19, 38]
+
                                 });
+
+
 
                                 this.confirmMarkerObj = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(this.confirmMapObj);
 
+
+
                                 this.confirmMarkerObj.on('dragend', async (e) => {
+
                                     const pos = e.target.getLatLng();
+
                                     this.confirmLoc.lat = pos.lat;
+
                                     this.confirmLoc.lon = pos.lng;
+
                                     if (this.confirmCircleObj) {
+
                                         this.confirmCircleObj.setLatLng([pos.lat, pos.lng]);
+
                                     }
+
                                     await this.reverseGeocode(pos.lat, pos.lng);
+
                                 });
+
+
 
                                 // Allow clicking anywhere on the map to move pin & accuracy circle
+
                                 this.confirmMapObj.on('click', async (e) => {
+
                                     const pos = e.latlng;
+
                                     this.confirmMarkerObj.setLatLng(pos);
+
                                     this.confirmLoc.lat = pos.lat;
+
                                     this.confirmLoc.lon = pos.lng;
+
                                     if (this.confirmCircleObj) {
+
                                         this.confirmCircleObj.setLatLng(pos);
+
                                     }
+
                                     await this.reverseGeocode(pos.lat, pos.lng);
+
                                 });
+
                             } else {
+
                                 this.confirmMapObj.setView([lat, lon], 16);
+
                                 this.confirmMarkerObj.setLatLng([lat, lon]);
+
                                 if (this.confirmCircleObj) {
+
                                     this.confirmCircleObj.setLatLng([lat, lon]);
+
                                     this.confirmCircleObj.setRadius(this.confirmLoc.accuracy || 25);
+
                                 }
+
                                 this.confirmMapObj.invalidateSize();
+
                             }
+
+
 
                             if (!knownTitle) {
+
                                 this.reverseGeocode(lat, lon);
+
                             }
+
                         }, 250);
+
                     });
+
                 },
+
+
 
                 async reverseGeocode(lat, lon) {
+
                     try {
+
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=en`);
+
                         const data = await res.json();
+
                         if (data && data.address) {
+
                             const a = data.address;
+
                             const road = a.road || a.suburb || a.neighbourhood || a.village || a.city_district || 'Local Area';
+
                             const city = a.city || a.town || a.county || a.state || '';
+
                             this.confirmLoc.title = road + (city ? ', ' + city : '');
+
                             this.confirmLoc.fullAddress = data.display_name;
+
                         } else {
+
                             this.confirmLoc.title = 'Selected Location';
+
                             this.confirmLoc.fullAddress = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
                         }
+
                     } catch(e) {
+
                         this.confirmLoc.title = 'Selected Area';
+
                         this.confirmLoc.fullAddress = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
                     }
+
                 },
+
+
 
                 async applyConfirmedLocation() {
+
                     this.userLat = this.confirmLoc.lat;
+
                     this.userLon = this.confirmLoc.lon;
+
                     this.userAddr = this.confirmLoc.title || 'Selected Location';
 
-                    localStorage.setItem('LocalLift_location', JSON.stringify({
+
+
+                    localStorage.setItem('locallift_location', JSON.stringify({
+
                         lat: this.userLat,
+
                         lon: this.userLon,
+
                         addr: this.userAddr,
+
                         accuracy: this.confirmLoc.accuracy
+
                     }));
 
+
+
                     this.showToast('Location confirmed! Discovering nearby shops 🏪', 'success');
+
                     await this.fetchHyperlocalData();
+
                     this.screen = 'main';
+
                     this.tab = 'home';
+
                 },
+
+
 
                 // ── DATA FETCHING & DISTANCE FILTERING ─────────────────
+
                 async changeRadius(rVal) {
+
                     this.selectedRadius = rVal;
+
                     const rText = rVal >= 1 ? rVal + ' km' : (rVal * 1000) + ' m';
+
                     this.showToast(`Filtering shops within ${rText}`, 'info');
+
                     await this.fetchHyperlocalData();
+
                 },
+
+
 
                 async fetchHyperlocalData() {
+
                     try {
+
                         const [vRes, oRes] = await Promise.all([
+
                             fetch(`/api/vendors/nearby?lat=${this.userLat}&lon=${this.userLon}&radius=${this.selectedRadius}&addr=${encodeURIComponent(this.userAddr || '')}`),
+
                             fetch('/api/offers')
+
                         ]);
 
+
+
                         if (vRes.ok) {
+
                             const data = await vRes.json();
+
                             this.vendors = data.vendors || [];
+
                             this.autoExpanded = data.auto_expanded || false;
+
                             this.searchResults.vendors = this.vendors;
-                        } else {
-                            throw new Error("Backend response not OK");
+
                         }
+
                         if (oRes.ok) {
+
                             this.offers = await oRes.json();
+
                         }
+
                     } catch(e) {
-                        console.error('Failed to load hyperlocal data, using offline fallback:', e);
-                        // OFFLINE FALLBACK - Guarantees shops show during exam even if tunnel is down!
-                        this.vendors = [
-                            { vendor_id: 991, business_name: 'Super Daily Mart', category: 'Grocery', distance_km: 0.3, distance_formatted: '300 m away', time_estimate: '4 min walk', rating: 4.8, is_open: 1, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80', description: 'Fresh groceries and daily needs.' },
-                            { vendor_id: 992, business_name: 'Cake Studio & Bakers', category: 'Bakery', distance_km: 0.4, distance_formatted: '400 m away', time_estimate: '5 min walk', rating: 4.5, is_open: 1, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80', description: 'Freshly baked cakes and breads.' },
-                            { vendor_id: 993, business_name: '24x7 Medico', category: 'Pharmacy', distance_km: 0.6, distance_formatted: '600 m away', time_estimate: '8 min walk', rating: 4.7, is_open: 1, image: 'https://images.unsplash.com/photo-1586015555751-63bb77f4322a?auto=format&fit=crop&w=400&q=80', description: 'All medicines available.' },
-                            { vendor_id: 994, business_name: 'Royal Kitchen', category: 'Restaurant', distance_km: 0.8, distance_formatted: '800 m away', time_estimate: '10 min walk', rating: 4.3, is_open: 1, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80', description: 'Delicious hot meals.' }
-                        ].filter(v => v.distance_km <= this.selectedRadius);
-                        this.searchResults.vendors = this.vendors;
-                        
-                        // Show warning toast
-                        this.showToast('Offline Mode: Showing Demo Shops', 'error');
+
+                        console.error('Failed to load hyperlocal data:', e);
+
                     }
+
                 },
+
+
 
                 filterByCategory(catName) {
+
                     this.selectedCategory = catName;
+
                     this.tab = 'explore';
+
                     this.executeSearch();
+
                 },
+
+
 
                 async executeSearch() {
+
                     const q = this.searchQuery.trim().toLowerCase();
+
                     try {
+
                         // No search and no category: show all nearby vendors in explore tab
+
                         if (!q && !this.selectedCategory) {
+
                             this.searchResults.vendors = this.vendors;
+
                             this.searchResults.products = [];
+
                             return;
+
                         }
+
+
 
                         // Category filter only (no text query) — filter from already-loaded vendors
+
                         if (!q && this.selectedCategory) {
+
                             this.searchResults.vendors = this.vendors.filter(v => v.category.toLowerCase() === this.selectedCategory.toLowerCase());
+
                             this.searchResults.products = [];
+
                             return;
+
                         }
+
+
 
                         let url = `/api/search?q=${encodeURIComponent(q)}&lat=${this.userLat}&lon=${this.userLon}`;
+
                         const res = await fetch(url);
+
                         if (res.ok) {
+
                             const data = await res.json();
+
                             let vList = data.vendors || [];
+
                             let pList = data.products || [];
 
+
+
                             if (this.selectedCategory) {
+
                                 vList = vList.filter(v => v.category.toLowerCase() === this.selectedCategory.toLowerCase());
+
                                 pList = pList.filter(p => (p.category && p.category.toLowerCase().includes(this.selectedCategory.toLowerCase())) || (p.vendor_category && p.vendor_category.toLowerCase() === this.selectedCategory.toLowerCase()));
+
                             }
+
+
 
                             this.searchResults.vendors = vList;
+
                             this.searchResults.products = pList;
+
                         }
+
                     } catch(e) {
+
                         console.error('Search error:', e);
+
                         // Fallback: filter from loaded vendors
+
                         this.searchResults.vendors = this.vendors.filter(v =>
+
                             v.business_name.toLowerCase().includes(q) ||
+
                             v.category.toLowerCase().includes(q)
+
                         );
+
                     }
+
                 },
+
+
 
                 // ── FULL MAP TAB ──────────────────────────────────────
+
                 renderMainMap() {
+
                     this.$nextTick(() => {
+
                         setTimeout(() => {
+
                             const el = document.getElementById('fullMainMap');
+
                             if (!el) return;
 
+
+
                             if (!this.mainMapObj) {
+
                                 this.mainMapObj = L.map('fullMainMap', { zoomControl: false }).setView([this.userLat, this.userLon], 15);
 
+
+
                                 // Google Maps Standard HD Tiles
+
                                 L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+
                                     maxZoom: 20,
+
                                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+
                                     attribution: 'Map data &copy; Google Maps'
+
                                 }).addTo(this.mainMapObj);
+
                             } else {
+
                                 this.mainMapObj.setView([this.userLat, this.userLon], 15);
+
                                 this.mainMapObj.invalidateSize();
+
                             }
+
+
 
                             // Accuracy Circle for User
+
                             if (this.mainAccuracyCircleObj) {
+
                                 this.mainMapObj.removeLayer(this.mainAccuracyCircleObj);
+
                             }
+
                             this.mainAccuracyCircleObj = L.circle([this.userLat, this.userLon], {
+
                                 radius: this.gpsAccuracy || 25,
+
                                 color: '#3b82f6',
+
                                 fillColor: '#60a5fa',
+
                                 fillOpacity: 0.16,
+
                                 weight: 1.5
+
                             }).addTo(this.mainMapObj);
 
+
+
                             // User GPS Pulsing Dot
+
                             if (this.mainUserMarkerObj) {
+
                                 this.mainMapObj.removeLayer(this.mainUserMarkerObj);
+
                             }
+
                             const userIcon = L.divIcon({
+
                                 className: '',
+
                                 html: '<div class="user-gps-dot"></div>',
+
                                 iconSize: [22, 22],
+
                                 iconAnchor: [11, 11]
+
                             });
+
                             this.mainUserMarkerObj = L.marker([this.userLat, this.userLon], { icon: userIcon, zIndexOffset: 1000 }).addTo(this.mainMapObj);
 
+
+
                             // Clear previous store markers
+
                             this.mainStoreMarkers.forEach(m => this.mainMapObj.removeLayer(m));
+
                             this.mainStoreMarkers = [];
 
+
+
                             // 16 Category Colors & Icons mapping
+
                             const catStyles = {
+
                                 'Bakery': { color: 'bg-amber-600', icon: 'fa-bread-slice' },
-                                'Grocery': { color: 'bg-blue-600', icon: 'fa-basket-shopping' },
+
+                                'Grocery': { color: 'bg-emerald-600', icon: 'fa-basket-shopping' },
+
                                 'Restaurant': { color: 'bg-rose-600', icon: 'fa-utensils' },
+
                                 'Clothing': { color: 'bg-pink-600', icon: 'fa-shirt' },
+
                                 'Pharmacy': { color: 'bg-blue-600', icon: 'fa-prescription-bottle-medical' },
+
                                 'Electronics': { color: 'bg-cyan-600', icon: 'fa-mobile-screen' },
-                                'Stationery': { color: 'bg-blue-600', icon: 'fa-pen-nib' },
+
+                                'Stationery': { color: 'bg-indigo-600', icon: 'fa-pen-nib' },
+
                                 'Beauty': { color: 'bg-fuchsia-600', icon: 'fa-wand-magic-sparkles' },
+
                                 'Hardware': { color: 'bg-stone-600', icon: 'fa-hammer' },
+
                                 'Fruits & Vegetables': { color: 'bg-lime-600', icon: 'fa-carrot' },
+
                                 'Footwear': { color: 'bg-teal-600', icon: 'fa-shoe-prints' },
+
                                 'Flowers': { color: 'bg-red-500', icon: 'fa-seedling' },
+
                                 'Pet Supplies': { color: 'bg-orange-600', icon: 'fa-paw' },
+
                                 'Home Services': { color: 'bg-sky-600', icon: 'fa-screwdriver-wrench' },
+
                                 'Dairy & Sweets': { color: 'bg-yellow-600', icon: 'fa-cheese' },
+
                                 'Cafe & Snacks': { color: 'bg-purple-600', icon: 'fa-mug-hot' }
+
                             };
+
+
 
                             // Add pins for all nearby shops
+
                             this.vendors.forEach(v => {
-                                const style = catStyles[v.category] || { color: 'bg-blue-600', icon: 'fa-store' };
+
+                                const style = catStyles[v.category] || { color: 'bg-indigo-600', icon: 'fa-store' };
+
                                 const pin = L.divIcon({
+
                                     className: '',
+
                                     html: `<div class="shop-map-pin ${style.color}"><i class="fa-solid ${style.icon}"></i></div>`,
+
                                     iconSize: [36, 36],
+
                                     iconAnchor: [18, 36]
+
                                 });
+
+
 
                                 const m = L.marker([v.latitude, v.longitude], { icon: pin }).addTo(this.mainMapObj);
+
                                 m.on('click', () => {
+
                                     this.activeMapShop = v;
+
                                     this.mainMapObj.panTo([v.latitude, v.longitude]);
+
                                 });
+
                                 this.mainStoreMarkers.push(m);
+
                             });
+
                         }, 250);
+
                     });
+
                 },
+
+
 
                 // ── SHOP PROFILE & PRODUCTS ───────────────────────────
+
                 async openShopProfile(shop) {
+
                     this.activeShop = shop;
+
                     this.shopDetailTab = 'products';
+
                     this.activeShopProducts = [];
+
                     this.activeShopReviews = [];
+
                     this.shopModalOpen = true;
 
+
+
                     try {
+
                         // Pass current user lat/lon so backend finds vendor in geo-cache
+
                         const res = await fetch(`/api/vendors/${shop.vendor_id || shop.id}?lat=${this.userLat}&lon=${this.userLon}`);
+
                         if (res.ok) {
+
                             const data = await res.json();
+
                             // Merge: keep distance/time fields from original shop, overlay API details
+
                             const vendorFromApi = data.vendor || {};
+
                             this.activeShop = {
+
                                 ...shop,
+
                                 ...vendorFromApi,
+
                                 image: shop.image || vendorFromApi.image,
+
                                 business_name: shop.business_name || vendorFromApi.business_name,
+
                                 distance_km: shop.distance_km,
+
                                 distance_formatted: shop.distance_formatted,
+
                                 time_estimate: shop.time_estimate
+
                             };
+
                             this.activeShopProducts = data.products || [];
+
                             this.activeShopReviews = data.reviews || [];
+
                         }
+
                     } catch(e) {
+
                         console.error('Failed to load shop details:', e);
+
                     }
+
                 },
+
+
 
                 // ── CART MANAGEMENT ───────────────────────────────────
+
                 getCartItemQty(prodId) {
+
                     const item = this.cartItems.find(i => i.product_id === prodId);
+
                     return item ? item.quantity : 0;
+
                 },
+
+
 
                 addItemToCart(prod, shop) {
+
                     if (this.cartItems.length > 0 && this.cartVendorId !== (shop.vendor_id || shop.id)) {
+
                         if (!confirm(`Your cart already has items from "${this.cartVendorName}". Clear cart to start ordering from "${shop.business_name}"?`)) {
+
                             return;
+
                         }
+
                         this.cartItems = [];
+
                     }
+
+
 
                     this.cartVendorId = shop.vendor_id || shop.id;
+
                     this.cartVendorName = shop.business_name;
 
+
+
                     const existing = this.cartItems.find(i => i.product_id === prod.product_id);
+
                     if (existing) {
+
                         existing.quantity += 1;
+
                     } else {
+
                         this.cartItems.push({
+
                             product_id: prod.product_id,
+
                             product_name: prod.product_name,
+
                             price: prod.price,
+
                             image: prod.image,
+
                             quantity: 1
+
                         });
+
                     }
+
                     this.showToast(`${prod.product_name} added to cart!`, 'success');
+
                 },
+
+
 
                 addToCartDirect(prod) {
+
                     const shop = this.vendors.find(v => v.vendor_id === prod.vendor_id) || { vendor_id: prod.vendor_id, business_name: prod.business_name || 'Local Shop' };
+
                     this.addItemToCart(prod, shop);
+
                 },
+
+
 
                 incrementCartQty(prodId) {
+
                     const item = this.cartItems.find(i => i.product_id === prodId);
+
                     if (item) item.quantity += 1;
+
                 },
+
+
 
                 decrementCartQty(prodId) {
+
                     const idx = this.cartItems.findIndex(i => i.product_id === prodId);
+
                     if (idx > -1) {
+
                         this.cartItems[idx].quantity -= 1;
+
                         if (this.cartItems[idx].quantity <= 0) {
+
                             this.cartItems.splice(idx, 1);
+
                         }
+
                     }
+
                     if (this.cartItems.length === 0) {
+
                         this.cartVendorId = null;
+
                         this.cartVendorName = '';
+
                         this.cartDrawerOpen = false;
+
                     }
+
                 },
+
+
 
                 get cartTotalCount() {
+
                     return this.cartItems.reduce((sum, i) => sum + i.quantity, 0);
+
                 },
+
+
 
                 get cartTotalAmount() {
+
                     return this.cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
                 },
 
+
+
                 // ── ORDER PLACEMENT ───────────────────────────────────
+
                 async submitOrder() {
+
                     if (this.cartItems.length === 0) return;
 
+
+
                     const payload = {
+
                         user_id: this.currentUser.user_id || 1,
+
                         vendor_id: this.cartVendorId,
+
                         total_amount: this.cartTotalAmount,
+
                         notes: this.orderNote,
+
                         // Send only DB-required fields for Order_Items table
+
                         items: this.cartItems.map(i => ({
+
                             product_id: i.product_id,
+
                             quantity: i.quantity,
+
                             price: i.price
+
                         }))
+
                     };
 
+
+
+                    const generatedOrderId = Math.floor(1000 + Math.random() * 9000);
+
+                    let confirmedOrderId = generatedOrderId;
+
+
+
                     try {
+
                         const res = await fetch('/api/orders', {
+
                             method: 'POST',
+
                             headers: { 'Content-Type': 'application/json' },
+
                             body: JSON.stringify(payload)
+
                         });
-                        const data = await res.json();
-                        this.lastOrderId = data.order_id || Math.floor(1000 + Math.random() * 9000);
 
-                        // Save in local orders array
-                        const newOrder = {
-                            id: this.lastOrderId,
-                            order_id: this.lastOrderId,
-                            business_name: this.cartVendorName,
-                            total_amount: this.cartTotalAmount,
-                            status: 'confirmed',
-                            items: JSON.parse(JSON.stringify(this.cartItems))
-                        };
+                        if (res.ok) {
 
-                        this.orders.unshift(newOrder);
-                        localStorage.setItem('LocalLift_orders', JSON.stringify(this.orders));
+                            const data = await res.json();
 
-                        // Reset Cart
-                        this.cartItems = [];
-                        this.cartVendorId = null;
-                        this.cartVendorName = '';
-                        this.cartDrawerOpen = false;
-                        this.orderNote = '';
-                        this.orderSuccessOpen = true;
+                            if (data && data.order_id) confirmedOrderId = data.order_id;
+
+                        }
 
                     } catch(e) {
-                        this.showToast('Order placed successfully (Demo mode)', 'success');
-                        this.cartItems = [];
-                        this.orderSuccessOpen = true;
+
+                        console.log('Order sync note:', e);
+
                     }
+
+
+
+                    this.lastOrderId = confirmedOrderId;
+
+
+
+                    // Always save in local orders array & localStorage
+
+                    const newOrder = {
+
+                        id: confirmedOrderId,
+
+                        order_id: confirmedOrderId,
+
+                        business_name: this.cartVendorName || 'Local Store',
+
+                        total_amount: this.cartTotalAmount,
+
+                        status: 'confirmed',
+
+                        items: JSON.parse(JSON.stringify(this.cartItems))
+
+                    };
+
+
+
+                    this.orders.unshift(newOrder);
+
+                    localStorage.setItem('locallift_orders', JSON.stringify(this.orders));
+
+                    localStorage.setItem('LocalLift_orders', JSON.stringify(this.orders));
+
+
+
+                    // Reset Cart
+
+                    this.cartItems = [];
+
+                    this.cartVendorId = null;
+
+                    this.cartVendorName = '';
+
+                    this.cartDrawerOpen = false;
+
+                    this.orderNote = '';
+
+                    this.orderSuccessOpen = true;
+
                 }
+
             };
+
         }
+
     </script>
+
 </body>
+
 </html>
+
