@@ -1,4 +1,4 @@
-const CACHE_NAME = 'locallift-v7-enterprise-fix';
+const CACHE_NAME = 'locallift-v8-3factor-enterprise';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

@@ -416,6 +416,10 @@ def home():
 def vendor_page():
     return render_template('vendor.html')
 
+@app.route('/admin')
+def admin_page():
+    return render_template('admin.html')
+
 @app.route('/manifest.json')
 def manifest():
     return app.send_static_file('manifest.json')
@@ -450,26 +454,52 @@ def login():
     email = d.get('email', '').strip().lower()
     password = d.get('password', '')
     
-    # Demo credentials bypass
+    # Demo Admin credentials bypass
+    if (email == 'admin@locallift.com' or email == 'admin') and (password == 'admin123' or not password):
+        return jsonify({
+            'success': True,
+            'user_id': 999,
+            'name': 'Platform Administrator',
+            'email': 'admin@locallift.com',
+            'user_type': 'admin'
+        })
+
+    # Demo Vendor credentials bypass
     if (email == 'vendor@locallift.com' or email == 'vendor') and (password == 'password123' or not password):
         return jsonify({
             'success': True,
-            'user_id': 1,
+            'user_id': 3,
             'vendor_id': 1,
-            'name': 'Rajesh Sharma',
+            'name': 'Ramesh Sharma',
             'email': 'vendor@locallift.com',
-            'user_type': 'vendor'
+            'user_type': 'vendor',
+            'vendor_status': 'approved',
+            'business_name': 'Sharma Bakery & Confectionery'
         })
         
     conn = get_db()
     user = conn.execute("SELECT * FROM Users WHERE LOWER(email)=? AND password_hash=?",
                         (email, hash_pw(password))).fetchone()
-    conn.close()
+    
     if user:
         u = dict(user); u.pop('password_hash', None)
-        u['vendor_id'] = 1 if u.get('user_type') == 'vendor' else None
+        
+        # If user is a vendor, fetch vendor details including approval status
+        if u.get('user_type') == 'vendor':
+            v = conn.execute("SELECT * FROM Vendors WHERE owner_user_id=? OR email=?", (u['user_id'], u.get('email',''))).fetchone()
+            if v:
+                u['vendor_id'] = v['vendor_id']
+                u['vendor_status'] = v['status'] if 'status' in v.keys() else 'approved'
+                u['business_name'] = v['business_name']
+            else:
+                u['vendor_id'] = 1
+                u['vendor_status'] = 'approved'
+                u['business_name'] = 'My Store'
+        conn.close()
         return jsonify({'success': True, **u})
-    return jsonify({'success': False, 'error': 'Invalid email or password. Use demo: vendor@locallift.com / password123'}), 401
+        
+    conn.close()
+    return jsonify({'success': False, 'error': 'Invalid email or password. Use demo: admin@locallift.com / admin123 or vendor@locallift.com / password123'}), 401
 
 @app.route('/api/auth/phone-login', methods=['POST'])
 def phone_login():
@@ -998,6 +1028,207 @@ Respond strictly with valid JSON with this exact schema:
             }
         }
     })
+
+
+# ─── 3-FACTOR ROLE-BASED APIS (VENDOR REGISTRATION & ADMIN) ───────
+
+@app.route('/api/vendor/register', methods=['POST'])
+def vendor_register():
+    """Vendor registration endpoint - creates account and places vendor in 'pending' status for admin approval"""
+    d = request.json or {}
+    b_name = d.get('business_name', '').strip()
+    owner_name = d.get('owner_name', '').strip()
+    category = d.get('category', 'Grocery').strip()
+    phone = d.get('phone', '').strip()
+    email = d.get('email', '').strip().lower()
+    password = d.get('password', 'password123')
+    address = d.get('address', '').strip()
+    city = d.get('city', 'Local City').strip()
+    description = d.get('description', f'Authentic {category.lower()} store registered with LocalLift.')
+    
+    if not b_name or not email or not phone:
+        return jsonify({'success': False, 'error': 'Business name, email, and phone are required'}), 400
+        
+    conn = get_db()
+    try:
+        # 1. Create User account with user_type = 'vendor'
+        cur = conn.execute(
+            "INSERT INTO Users (name, email, phone, password_hash, user_type) VALUES (?,?,?,?,?)",
+            (owner_name or b_name, email, phone, hash_pw(password), 'vendor')
+        )
+        conn.commit()
+        uid = cur.lastrowid
+    except sqlite3.IntegrityError:
+        # If user exists, find their user_id
+        existing_user = conn.execute("SELECT user_id FROM Users WHERE email=?", (email,)).fetchone()
+        uid = existing_user['user_id'] if existing_user else 1
+
+    # 2. Get category image fallback
+    meta = CATEGORY_METADATA.get(category, CATEGORY_METADATA['Grocery'])
+    image = meta['image']
+    
+    # 3. Create Vendor record with status = 'pending'
+    cur_v = conn.execute("""
+        INSERT INTO Vendors 
+        (owner_user_id, business_name, owner_name, category, address, city, phone, email, opening_hours, closing_time, rating, description, image, is_open, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, '8:00 AM', '9:30 PM', 4.8, ?, ?, 1, 'pending')
+    """, (uid, b_name, owner_name, category, address, city, phone, email, description, image))
+    conn.commit()
+    vid = cur_v.lastrowid
+    
+    # Pre-populate 3 sample products from category metadata so shop has a catalog ready when approved
+    for item in meta['items'][:3]:
+        conn.execute("""
+            INSERT INTO Products (vendor_id, product_name, category, price, image, availability, description)
+            VALUES (?, ?, ?, ?, ?, 1, ?)
+        """, (vid, item['name'], category, item['price'], item['img'], item['desc']))
+    conn.commit()
+    
+    conn.close()
+    return jsonify({
+        'success': True,
+        'vendor_id': vid,
+        'status': 'pending',
+        'message': 'Vendor application submitted successfully! It is now pending Admin approval.'
+    })
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    d = request.json or {}
+    email = d.get('email', '').strip().lower()
+    password = d.get('password', '')
+    
+    if (email == 'admin@locallift.com' or email == 'admin') and (password == 'admin123' or not password):
+        return jsonify({
+            'success': True,
+            'name': 'Platform Administrator',
+            'email': 'admin@locallift.com',
+            'user_type': 'admin'
+        })
+        
+    conn = get_db()
+    user = conn.execute("SELECT * FROM Users WHERE LOWER(email)=? AND password_hash=? AND user_type='admin'",
+                        (email, hash_pw(password))).fetchone()
+    conn.close()
+    if user:
+        return jsonify({'success': True, 'name': user['name'], 'email': user['email'], 'user_type': 'admin'})
+    return jsonify({'success': False, 'error': 'Invalid admin credentials. Use demo: admin@locallift.com / admin123'}), 401
+
+@app.route('/api/admin/stats', methods=['GET'])
+def admin_stats():
+    conn = get_db()
+    total_users = conn.execute("SELECT COUNT(*) FROM Users").fetchone()[0]
+    total_vendors = conn.execute("SELECT COUNT(*) FROM Vendors").fetchone()[0]
+    
+    pending_vendors = conn.execute("SELECT COUNT(*) FROM Vendors WHERE status='pending'").fetchone()[0]
+    approved_vendors = conn.execute("SELECT COUNT(*) FROM Vendors WHERE status='approved' OR status IS NULL").fetchone()[0]
+    rejected_vendors = conn.execute("SELECT COUNT(*) FROM Vendors WHERE status='rejected'").fetchone()[0]
+    
+    total_orders = conn.execute("SELECT COUNT(*) FROM Orders").fetchone()[0]
+    total_rev = conn.execute("SELECT SUM(total_amount) FROM Orders").fetchone()[0] or 0
+    total_products = conn.execute("SELECT COUNT(*) FROM Products").fetchone()[0]
+    active_offers = conn.execute("SELECT COUNT(*) FROM Offers WHERE status='active'").fetchone()[0]
+    
+    conn.close()
+    return jsonify({
+        'total_users': total_users,
+        'total_vendors': total_vendors,
+        'pending_vendors': pending_vendors,
+        'approved_vendors': approved_vendors,
+        'rejected_vendors': rejected_vendors,
+        'total_orders': total_orders,
+        'total_revenue': round(total_rev, 2),
+        'total_products': total_products,
+        'active_offers': active_offers
+    })
+
+@app.route('/api/admin/vendors', methods=['GET'])
+def admin_vendors():
+    status_filter = request.args.get('status', 'all')
+    conn = get_db()
+    
+    if status_filter == 'pending':
+        query = "SELECT * FROM Vendors WHERE status='pending' ORDER BY created_at DESC"
+    elif status_filter == 'approved':
+        query = "SELECT * FROM Vendors WHERE status='approved' OR status IS NULL ORDER BY created_at DESC"
+    elif status_filter == 'rejected':
+        query = "SELECT * FROM Vendors WHERE status='rejected' ORDER BY created_at DESC"
+    else:
+        query = "SELECT * FROM Vendors ORDER BY CASE WHEN status='pending' THEN 0 ELSE 1 END, created_at DESC"
+        
+    vendors = [dict(v) for v in conn.execute(query).fetchall()]
+    
+    # Attach product count to each vendor
+    for v in vendors:
+        p_count = conn.execute("SELECT COUNT(*) FROM Products WHERE vendor_id=?", (v['vendor_id'],)).fetchone()[0]
+        v['product_count'] = p_count
+        if 'status' not in v or not v['status']:
+            v['status'] = 'approved'
+            
+    conn.close()
+    return jsonify(vendors)
+
+@app.route('/api/admin/vendors/<int:vid>/status', methods=['PATCH'])
+def admin_update_vendor_status(vid):
+    d = request.json or {}
+    new_status = d.get('status', 'approved') # 'approved' or 'rejected'
+    
+    conn = get_db()
+    conn.execute("UPDATE Vendors SET status=? WHERE vendor_id=?", (new_status, vid))
+    conn.commit()
+    v = conn.execute("SELECT * FROM Vendors WHERE vendor_id=?", (vid,)).fetchone()
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'vendor_id': vid,
+        'status': new_status,
+        'business_name': v['business_name'] if v else ''
+    })
+
+@app.route('/api/admin/vendors/<int:vid>', methods=['DELETE'])
+def admin_delete_vendor(vid):
+    conn = get_db()
+    conn.execute("DELETE FROM Vendors WHERE vendor_id=?", (vid,))
+    conn.execute("DELETE FROM Products WHERE vendor_id=?", (vid,))
+    conn.execute("DELETE FROM Offers WHERE vendor_id=?", (vid,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'vendor_id': vid})
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_users():
+    conn = get_db()
+    users = [dict(u) for u in conn.execute("SELECT * FROM Users ORDER BY created_at DESC").fetchall()]
+    for u in users:
+        u.pop('password_hash', None)
+        o_count = conn.execute("SELECT COUNT(*) FROM Orders WHERE user_id=?", (u['user_id'],)).fetchone()[0]
+        u['orders_count'] = o_count
+    conn.close()
+    return jsonify(users)
+
+@app.route('/api/admin/orders', methods=['GET'])
+def admin_orders():
+    conn = get_db()
+    orders = [dict(o) for o in conn.execute("""
+        SELECT Orders.*, Users.name as customer_name, Users.phone as customer_phone, Vendors.business_name
+        FROM Orders
+        LEFT JOIN Users ON Orders.user_id = Users.user_id
+        LEFT JOIN Vendors ON Orders.vendor_id = Vendors.vendor_id
+        ORDER BY Orders.created_at DESC LIMIT 50
+    """).fetchall()]
+    
+    for o in orders:
+        items = [dict(i) for i in conn.execute("""
+            SELECT Order_Items.*, Products.product_name 
+            FROM Order_Items 
+            LEFT JOIN Products ON Order_Items.product_id = Products.product_id 
+            WHERE Order_Items.order_id=?
+        """, (o['order_id'],)).fetchall()]
+        o['items'] = items
+        
+    conn.close()
+    return jsonify(orders)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

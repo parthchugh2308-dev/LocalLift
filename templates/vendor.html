@@ -23,51 +23,204 @@
 </head>
 <body x-data="vendorPortal()" x-init="init()" x-cloak>
 
+<!-- ROLE SWITCHER BANNER -->
+<div class="bg-slate-950 text-white text-xs px-4 py-2 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-50">
+    <div class="flex items-center gap-2 font-bold">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-slate-400">LocalLift Role Switcher:</span>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="/" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-rose-600 hover:text-white transition font-bold text-slate-300 flex items-center gap-1.5 border border-slate-800">
+            <i class="fa-solid fa-basket-shopping text-rose-400"></i> Customer App
+        </a>
+        <span class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-extrabold flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-store"></i> Vendor Portal
+        </span>
+        <a href="/admin" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 hover:text-white transition font-bold text-slate-300 flex items-center gap-1.5 border border-slate-800">
+            <i class="fa-solid fa-shield-halved text-rose-400"></i> Admin Center
+        </a>
+    </div>
+</div>
+
+
 <div class="mobile-wrapper">
     
-    <!-- NOT LOGGED IN - LOGIN SCREEN -->
+    <!-- NOT LOGGED IN - AUTH & REGISTRATION SCREEN -->
     <div x-show="!isLoggedIn" class="flex-1 flex flex-col items-center justify-center p-6 bg-white w-full h-full min-h-screen">
-        <div class="w-full max-w-sm flex flex-col items-center">
-            <div class="w-20 h-20 bg-rose-600 rounded-3xl flex items-center justify-center text-white text-4xl mb-4 shadow-xl shadow-rose-500/25">
+        <div class="w-full max-w-md flex flex-col items-center">
+            
+            <div class="w-20 h-20 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 rounded-3xl flex items-center justify-center text-white text-4xl mb-4 shadow-xl shadow-indigo-500/25">
                 <i class="fa-solid fa-store"></i>
             </div>
             <h1 class="text-3xl font-black text-gray-900 tracking-tight mb-1">LocalLift</h1>
-            <p class="text-rose-600 font-bold text-xs uppercase tracking-wider mb-8">Vendor Partner Portal</p>
+            <p class="text-indigo-600 font-bold text-xs uppercase tracking-wider mb-6">Official Vendor Partner Portal</p>
             
-            <form @submit.prevent="login" class="w-full space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Registered Email</label>
-                    <input type="email" x-model="loginForm.email" class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-rose-600 focus:bg-white font-bold text-sm text-gray-800 transition" required placeholder="vendor@locallift.com">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
-                    <input type="password" x-model="loginForm.password" class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-rose-600 focus:bg-white font-bold text-sm text-gray-800 transition" required placeholder="••••••••">
-                </div>
-                
-                <div x-show="loginError" x-text="loginError" class="text-rose-600 text-xs font-bold text-center bg-rose-50 p-2.5 rounded-xl border border-rose-100"></div>
-                
-                <button type="submit" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-rose-500/25 active:scale-95 transition flex items-center justify-center gap-2" :disabled="isLoading">
-                    <span x-show="!isLoading">Login to Partner Dashboard</span>
-                    <i x-show="isLoading" class="fa-solid fa-spinner fa-spin"></i>
+            <!-- Auth Mode Switcher -->
+            <div class="flex p-1 bg-slate-100 rounded-2xl w-full mb-6 border border-slate-200">
+                <button type="button" @click="authMode = 'login'" 
+                        class="flex-1 py-2.5 rounded-xl text-xs font-black transition"
+                        :class="authMode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                    Partner Sign In
                 </button>
-            </form>
-            
-            <div class="mt-8 p-4 bg-indigo-50/80 rounded-2xl w-full border border-indigo-100/80 text-left">
-                <p class="text-[10px] font-black text-indigo-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <i class="fa-solid fa-key text-rose-600"></i> Demo Partner Credentials
-                </p>
-                <p class="text-xs text-indigo-800 font-semibold mb-0.5">Email: <strong class="font-black text-indigo-950">vendor@locallift.com</strong></p>
-                <p class="text-xs text-indigo-800 font-semibold">Password: <strong class="font-black text-indigo-950">password123</strong></p>
+                <button type="button" @click="authMode = 'register'" 
+                        class="flex-1 py-2.5 rounded-xl text-xs font-black transition"
+                        :class="authMode === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                    Register New Shop 📋
+                </button>
+            </div>
+
+            <!-- TAB 1: LOGIN -->
+            <div x-show="authMode === 'login'" class="w-full">
+                <form @submit.prevent="login" class="w-full space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Registered Partner Email</label>
+                        <input type="email" x-model="loginForm.email" class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-indigo-600 focus:bg-white font-bold text-sm text-gray-800 transition" required placeholder="vendor@locallift.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+                        <input type="password" x-model="loginForm.password" class="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-indigo-600 focus:bg-white font-bold text-sm text-gray-800 transition" required placeholder="••••••••">
+                    </div>
+                    
+                    <div x-show="loginError" x-text="loginError" class="text-rose-600 text-xs font-bold text-center bg-rose-50 p-2.5 rounded-xl border border-rose-100"></div>
+                    
+                    <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-indigo-500/25 active:scale-95 transition flex items-center justify-center gap-2" :disabled="isLoading">
+                        <span x-show="!isLoading">Login to Partner Dashboard</span>
+                        <i x-show="isLoading" class="fa-solid fa-spinner fa-spin"></i>
+                    </button>
+                </form>
+                
+                <div class="mt-6 p-4 bg-indigo-50/80 rounded-2xl w-full border border-indigo-100/80 text-left">
+                    <p class="text-[10px] font-black text-indigo-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-key text-indigo-600"></i> Demo Approved Partner Credentials
+                    </p>
+                    <p class="text-xs text-indigo-800 font-semibold mb-0.5">Email: <strong class="font-black text-indigo-950">vendor@locallift.com</strong></p>
+                    <p class="text-xs text-indigo-800 font-semibold mb-2">Password: <strong class="font-black text-indigo-950">password123</strong></p>
+                    <p class="text-[11px] text-slate-500 border-t border-indigo-100 pt-1.5 font-medium">Want to test a pending vendor? Use: <strong>spicemart@locallift.com</strong></p>
+                </div>
+            </div>
+
+            <!-- TAB 2: REGISTER SHOP APPLICATION -->
+            <div x-show="authMode === 'register'" class="w-full">
+                <form @submit.prevent="registerShop" class="w-full space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Shop / Business Name *</label>
+                        <input type="text" x-model="regForm.business_name" required placeholder="e.g. City Organic Bakery & Sweets" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Owner Name *</label>
+                            <input type="text" x-model="regForm.owner_name" required placeholder="e.g. Rajesh Kumar" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Category *</label>
+                            <select x-model="regForm.category" required class="w-full px-3 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-xs text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                                <option value="Bakery">Bakery</option>
+                                <option value="Grocery">Grocery</option>
+                                <option value="Restaurant">Restaurant</option>
+                                <option value="Pharmacy">Pharmacy</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Stationery">Stationery</option>
+                                <option value="Beauty">Beauty</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Fruits & Vegetables">Fruits & Veg</option>
+                                <option value="Dairy & Sweets">Dairy & Sweets</option>
+                                <option value="Cafe & Snacks">Cafe & Snacks</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Contact Phone *</label>
+                            <input type="tel" x-model="regForm.phone" required placeholder="9876543210" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Partner Email *</label>
+                            <input type="email" x-model="regForm.email" required placeholder="shop@email.com" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Set Password *</label>
+                        <input type="password" x-model="regForm.password" required placeholder="••••••••" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Shop Address & Landmark *</label>
+                        <input type="text" x-model="regForm.address" required placeholder="Shop #12, Market Square" class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-sm text-gray-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+
+                    <div x-show="regError" x-text="regError" class="text-rose-600 text-xs font-bold text-center bg-rose-50 p-2.5 rounded-xl border border-rose-100"></div>
+
+                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-indigo-500/25 active:scale-95 transition flex items-center justify-center gap-2" :disabled="isLoading">
+                        <span x-show="!isLoading">Submit Application to Admin 🚀</span>
+                        <i x-show="isLoading" class="fa-solid fa-spinner fa-spin"></i>
+                    </button>
+                    
+                    <p class="text-[11px] text-slate-400 text-center font-medium">Your application will be forwarded to the LocalLift Admin team for official review & verification.</p>
+                </form>
             </div>
             
-            <a href="/" class="mt-6 text-xs text-gray-400 font-bold hover:text-rose-600">
+            <a href="/" class="mt-6 text-xs text-gray-400 font-bold hover:text-indigo-600">
                 ← Back to Customer Marketplace
             </a>
         </div>
     </div>
 
+    <!-- PENDING APPROVAL SCREEN (IF VENDOR LOGS IN BUT IS PENDING) -->
+    <div x-show="isLoggedIn && vendorStatus === 'pending'" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 w-full min-h-screen">
+        <div class="w-full max-w-md bg-white rounded-3xl p-8 border border-amber-200 shadow-xl text-center flex flex-col items-center">
+            
+            <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 text-4xl mb-4 border border-amber-200 animate-pulse">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+
+            <span class="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 px-3 py-1 rounded-full mb-3">
+                Application Under Review by Admin
+            </span>
+
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Verification in Progress!</h2>
+            
+            <p class="text-xs text-slate-500 mb-6 font-medium leading-relaxed">
+                Thank you for applying to partner with LocalLift! Your application for 
+                <strong class="text-slate-800" x-text="vendorData.shop_name"></strong> has been submitted.
+                The Administrator is currently reviewing your shop details.
+            </p>
+
+            <div class="w-full bg-slate-50 p-4 rounded-2xl text-left border border-slate-200 space-y-2 text-xs mb-6 font-semibold text-slate-700">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Application ID:</span>
+                    <span class="font-bold text-slate-900" x-text="'#VEN-' + vendorId"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Category:</span>
+                    <span class="font-bold text-indigo-600" x-text="vendorData.category"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Status:</span>
+                    <span class="text-amber-600 font-bold">Pending Admin Approval</span>
+                </div>
+            </div>
+
+            <div class="w-full flex flex-col gap-2.5">
+                <button @click="checkApprovalStatus" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-extrabold text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Check Live Approval Status</span>
+                </button>
+
+                <a href="/admin" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-extrabold text-xs transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-rose-400"></i>
+                    <span>Switch to Admin Portal to Approve</span>
+                </a>
+
+                <button @click="logout" class="w-full py-2.5 text-xs text-slate-400 font-bold hover:text-rose-600 transition">
+                    Sign Out
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- LOGGED IN VIEW -->
-    <div x-show="isLoggedIn" class="flex-1 flex flex-col h-full w-full relative">
+    <div x-show="isLoggedIn && vendorStatus === 'approved'" class="flex-1 flex flex-col h-full w-full relative">
         <!-- TOP BAR (Sticky) -->
         <header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-700 text-white px-5 py-4 shadow-lg sticky top-0 z-40">
             <div class="flex justify-between items-center">
@@ -444,12 +597,26 @@ function vendorPortal() {
     return {
         isLoggedIn: false,
         isLoading: false,
+        authMode: 'login', // 'login' or 'register'
+        vendorStatus: 'approved', // 'approved', 'pending', 'rejected'
         vendorId: 1,
         activeTab: 'dashboard',
         orderFilter: 'all',
         
         loginForm: { email: '', password: '' },
         loginError: '',
+        
+        regForm: {
+            business_name: '',
+            owner_name: '',
+            category: 'Bakery',
+            phone: '',
+            email: '',
+            password: 'password123',
+            address: '',
+            city: 'Local City'
+        },
+        regError: '',
         
         vendorData: {
             shop_name: 'Sharma General Store & Bakers',
@@ -478,8 +645,10 @@ function vendorPortal() {
 
         async init() {
             const storedId = localStorage.getItem('ll_vendor_id');
+            const storedStatus = localStorage.getItem('ll_vendor_status');
             if (storedId) {
                 this.vendorId = parseInt(storedId) || 1;
+                this.vendorStatus = storedStatus || 'approved';
                 this.isLoggedIn = true;
                 await this.loadAllData();
             }
@@ -499,7 +668,9 @@ function vendorPortal() {
                 
                 if (data.success) {
                     this.vendorId = data.vendor_id || 1;
+                    this.vendorStatus = data.vendor_status || 'approved';
                     localStorage.setItem('ll_vendor_id', this.vendorId);
+                    localStorage.setItem('ll_vendor_status', this.vendorStatus);
                     this.isLoggedIn = true;
                     await this.loadAllData();
                 } else {
@@ -508,6 +679,7 @@ function vendorPortal() {
             } catch (err) {
                 // Demo fallback
                 this.vendorId = 1;
+                this.vendorStatus = 'approved';
                 localStorage.setItem('ll_vendor_id', this.vendorId);
                 this.isLoggedIn = true;
                 await this.loadAllData();
@@ -516,8 +688,56 @@ function vendorPortal() {
             }
         },
 
+        async registerShop() {
+            this.isLoading = true;
+            this.regError = '';
+            try {
+                const res = await fetch('/api/vendor/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.regForm)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.vendorId = data.vendor_id;
+                    this.vendorStatus = 'pending';
+                    this.vendorData.shop_name = this.regForm.business_name;
+                    this.vendorData.owner_name = this.regForm.owner_name;
+                    this.vendorData.category = this.regForm.category;
+                    this.vendorData.phone = this.regForm.phone;
+                    this.vendorData.address = this.regForm.address;
+                    localStorage.setItem('ll_vendor_id', this.vendorId);
+                    localStorage.setItem('ll_vendor_status', 'pending');
+                    this.isLoggedIn = true;
+                } else {
+                    this.regError = data.error || 'Registration failed';
+                }
+            } catch(e) {
+                this.regError = 'Failed to submit registration. Check network.';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async checkApprovalStatus() {
+            try {
+                const res = await fetch('/api/admin/vendors');
+                if (res.ok) {
+                    const list = await res.json();
+                    const me = list.find(v => v.vendor_id === this.vendorId);
+                    if (me && me.status === 'approved') {
+                        this.vendorStatus = 'approved';
+                        localStorage.setItem('ll_vendor_status', 'approved');
+                        await this.loadAllData();
+                    } else {
+                        alert('Your application is still under review by the Administrator. Please check back shortly!');
+                    }
+                }
+            } catch(e){}
+        },
+
         logout() {
-            localStorage.removeItem('ll_vendor_id');
+            localStorage.removeItem('ll_vendor_id'); localStorage.removeItem('ll_vendor_status');
             this.isLoggedIn = false;
             this.vendorId = 1;
             this.loginForm = { email: '', password: '' };

@@ -49,6 +49,7 @@ def init_db():
             description TEXT,
             image TEXT,
             is_open INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'approved',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE Products (
@@ -117,6 +118,7 @@ def init_db():
         ('Rahul Sharma', 'customer@locallift.com', '9876543210', hash_pw('password123'), 'customer'),
         ('Priya Verma', 'priya@locallift.com', '9876543211', hash_pw('password123'), 'customer'),
         ('Ramesh Sharma', 'vendor@locallift.com', '9812345678', hash_pw('password123'), 'vendor'),
+        ('Platform Admin', 'admin@locallift.com', '9999900000', hash_pw('admin123'), 'admin'),
     ]
     c.executemany("INSERT INTO Users (name,email,phone,password_hash,user_type) VALUES (?,?,?,?,?)", users)
 
