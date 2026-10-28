@@ -1,4 +1,4 @@
-const CACHE_NAME = 'locallift-v4';
+const CACHE_NAME = 'locallift-v6-romantic-responsive';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
