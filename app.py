@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'locallift_innovation_project_secret_2026'
 
-if os.environ.get('VERCEL'):
+if os.environ.get('VERCEL') or os.environ.get('RENDER'):
     DB = '/tmp/LocalLift_DB.sqlite'
 else:
     DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'LocalLift_DB.sqlite')
@@ -256,6 +256,14 @@ def fetch_live_internet_vendors(lat, lon, radius_km=2.0, city_hint=''):
             if addr.get('suburb') and addr.get('suburb') not in local_roads: local_roads.append(addr.get('suburb'))
     except Exception as e:
         print("Reverse geocoding note:", e)
+        # Use city_hint or defaults when reverse geocode fails
+        if city_hint:
+            city = city_hint
+            locality = city_hint.split(',')[0].strip() if ',' in city_hint else city_hint
+        else:
+            city = 'Local City'
+            locality = 'Main Market'
+        local_roads = [f"{locality} Main Road", f"{locality} Market Street", f"{locality} Station Road", f"{locality} Mall Road"]
 
     # 2. Query OpenStreetMap for real local POIs around the coordinate
     delta = min(0.06, max(0.02, radius_km / 111.0 * 1.6))
@@ -504,6 +512,46 @@ def get_nearby():
         filtered = [v for v in filtered if v['category'].lower() == cat.lower()]
         
     # Radius filter
+    radius_filtered = [v for v in filtered if v['distance_km'] <= radius]
+    
+    auto_expanded = False
+    if len(radius_filtered) < 3 and radius < 5.0:
+        radius_filtered = [v for v in filtered if v['distance_km'] <= 5.0]
+        auto_expanded = True
+        
+    return jsonify({
+        'vendors': radius_filtered,
+        'total': len(radius_filtered),
+        'radius_km': radius,
+        'auto_expanded': auto_expanded,
+        'locality_detected': locality,
+        'city_detected': city
+    })
+
+
+@app.route('/api/hyperlocal', methods=['GET'])
+def hyperlocal():
+    """Primary endpoint called by customer frontend — alias for /api/vendors/nearby"""
+    try:
+        lat = float(request.args.get('lat', 30.9010))
+        lon = float(request.args.get('lon', 75.8573))
+    except ValueError:
+        lat, lon = 30.9010, 75.8573
+        
+    try:
+        radius = float(request.args.get('radius', 2.0))
+    except ValueError:
+        radius = 2.0
+        
+    cat = request.args.get('category', '').strip()
+    city_hint = request.args.get('city', '').strip() or request.args.get('addr', '').strip()
+
+    all_vendors, locality, city = fetch_live_internet_vendors(lat, lon, radius_km=radius, city_hint=city_hint)
+    
+    filtered = all_vendors
+    if cat:
+        filtered = [v for v in filtered if v['category'].lower() == cat.lower()]
+        
     radius_filtered = [v for v in filtered if v['distance_km'] <= radius]
     
     auto_expanded = False

@@ -1549,6 +1549,11 @@
                             this.vendors = data.vendors || [];
                             this.autoExpanded = data.auto_expanded || false;
                             this.searchResults.vendors = this.vendors;
+                            
+                            // If API returned but 0 shops, use offline fallback
+                            if (this.vendors.length === 0) {
+                                throw new Error('No vendors returned from API — using local fallback');
+                            }
                         }
                         if (oRes.ok) {
                             this.offers = await oRes.json();
@@ -1665,22 +1670,32 @@
                 async openShopProfile(shop) {
                     this.activeShop = shop;
                     this.activeShopProducts = [];
+                    this.activeShopReviews = [];
+                    this.shopDetailTab = 'products';
                     this.shopModalOpen = true;
 
                     try {
-                        const res = await fetch(`/api/products?vendor_id=${shop.vendor_id}&lat=${this.userLat}&lon=${this.userLon}`);
+                        // Use vendor detail endpoint which synthesizes products from category metadata
+                        const res = await fetch(`/api/vendors/${shop.vendor_id}?lat=${this.userLat}&lon=${this.userLon}`);
                         if (res.ok) {
-                            this.activeShopProducts = await res.json();
+                            const data = await res.json();
+                            this.activeShopProducts = data.products || [];
+                            this.activeShopReviews = data.reviews || [];
+                            // Update shop info with richer details
+                            if (data.vendor) {
+                                this.activeShop = { ...shop, ...data.vendor };
+                            }
                         }
                     } catch(e){
-                        console.error('Products fetch error:', e);
+                        console.error('Shop profile fetch error:', e);
                     }
 
+                    // Fallback products if API fails
                     if (this.activeShopProducts.length === 0) {
                         this.activeShopProducts = [
-                            { product_id: 101, product_name: 'Special Item #1', price: 140, image: shop.image, description: 'Handcrafted fresh daily with pure ingredients.' },
-                            { product_id: 102, product_name: 'Premium Item #2', price: 220, image: shop.image, description: 'Best seller item loved by local neighbors.' },
-                            { product_id: 103, product_name: 'Classic Choice #3', price: 90, image: shop.image, description: 'High quality essential with fast doorstep delivery.' }
+                            { product_id: 101, product_name: 'Special Item #1', price: 140, image: shop.image, description: 'Handcrafted fresh daily with pure ingredients.', vendor_id: shop.vendor_id, business_name: shop.business_name },
+                            { product_id: 102, product_name: 'Premium Item #2', price: 220, image: shop.image, description: 'Best seller item loved by local neighbors.', vendor_id: shop.vendor_id, business_name: shop.business_name },
+                            { product_id: 103, product_name: 'Classic Choice #3', price: 90, image: shop.image, description: 'High quality essential with fast doorstep delivery.', vendor_id: shop.vendor_id, business_name: shop.business_name }
                         ];
                     }
                 },
