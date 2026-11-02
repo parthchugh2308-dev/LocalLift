@@ -1,0 +1,8 @@
+{
+  "name": "LocalLift",
+  "description": "Hyperlocal digital marketplace connecting customers with verified neighborhood shops, zero-commission vendor portal, and admin governance.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
