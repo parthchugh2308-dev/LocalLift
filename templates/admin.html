@@ -2,55 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalLift Admin — Control Center & Governance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>LocalLift — Super Admin Control Center</title>
     
-    <!-- Tailwind CSS -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#111827">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
+                        primary: '#e11d48',
+                        'primary-hover': '#be123c',
+                        blush: '#fff1f3',
+                        ivory: '#fff9f8',
+                        navy: '#111827',
                         romantic: {
                             50: '#fff1f2',
                             100: '#ffe4e6',
                             200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
                             500: '#f43f5e',
                             600: '#e11d48',
                             700: '#be123c',
                             800: '#9f1239',
                             900: '#881337',
-                        },
-                        admin: {
-                            800: '#1e1b4b',
-                            900: '#0f172a',
-                            950: '#020617',
                         }
                     },
                     fontFamily: {
+                        display: ['"Fraunces"', 'Georgia', 'serif'],
                         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'brand': '0 8px 20px -8px rgba(225, 29, 72, 0.45)',
+                        'soft': '0 1px 3px rgba(17, 24, 39, 0.05), 0 10px 25px -10px rgba(17, 24, 39, 0.1)',
                     }
                 }
             }
         }
     </script>
     
-    <!-- Fonts & Icons -->
+    <!-- Google Fonts: Fraunces & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Icons: FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <style>
-        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #f8fafc; }
-        [x-cloak] { display: none !important; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .font-display {
+            font-family: 'Fraunces', Georgia, serif;
+            letter-spacing: -0.025em;
+        }
+
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        [x-cloak] { display: none !important; }
+
+        .card-lift {
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px -5px rgba(17, 24, 39, 0.08), 0 4px 10px -4px rgba(17, 24, 39, 0.04);
+        }
     </style>
 </head>
-<body x-data="adminApp()" x-init="init()" x-cloak class="min-h-screen text-slate-900 bg-slate-50 flex flex-col">
+<body class="min-h-screen w-full bg-slate-50 text-slate-900 font-sans antialiased overflow-x-hidden selection:bg-rose-500 selection:text-white" x-data="adminApp()" x-init="init()" x-cloak>
+
+    <!-- ── ROLE SWITCHER BANNER (UTILITY BAR) ────────────────── -->
+    <div class="bg-slate-950 text-white text-xs px-4 py-2 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-50">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            <span class="font-extrabold tracking-wide uppercase text-[10px] text-slate-400">Environment: Enterprise LocalLift v2.0</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-bag-shopping text-rose-400"></i> Marketplace
+            </a>
+            <span class="text-slate-700">|</span>
+            <a href="/vendor" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-store text-rose-400"></i> Vendor Portal
+            </a>
+            <span class="text-slate-700">|</span>
+            <a href="/delivery" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-motorcycle text-emerald-400"></i> Delivery Fleet
+            </a>
+            <span class="text-slate-700">|</span>
+            <span class="px-2.5 py-1 rounded-lg bg-rose-600/30 text-rose-300 font-black flex items-center gap-1.5 border border-rose-500/30">
+                <i class="fa-solid fa-shield-halved text-rose-400"></i> Super Admin
+            </span>
+        </div>
+    </div>
 
     <!-- GLOBAL TOAST NOTIFICATION -->
     <div x-show="toast.show" 
@@ -60,535 +119,1006 @@
          x-transition:leave="transition ease-in duration-200 transform"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 -translate-y-8"
-         class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-bold text-white"
+         class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-bold text-white backdrop-blur-md"
          :class="toast.type === 'success' ? 'bg-emerald-600 shadow-emerald-500/20' : (toast.type === 'error' ? 'bg-rose-600 shadow-rose-500/20' : 'bg-slate-900 shadow-slate-900/20')">
         <i class="fa-solid" :class="toast.type === 'success' ? 'fa-circle-check text-emerald-200' : (toast.type === 'error' ? 'fa-circle-exclamation text-rose-200' : 'fa-circle-info text-blue-200')"></i>
         <span x-text="toast.message"></span>
     </div>
 
-    <!-- ROLE SWITCHER BANNER -->
-    <div class="bg-slate-950 text-white text-xs px-4 py-2 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-50">
-        <div class="flex items-center gap-2 font-bold">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span class="text-slate-400">LocalLift Role Switcher:</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="/" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-rose-600 hover:text-white transition font-bold text-slate-300 flex items-center gap-1.5 border border-slate-800">
-                <i class="fa-solid fa-basket-shopping text-rose-400"></i> Customer App
-            </a>
-            <a href="/vendor" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-indigo-600 hover:text-white transition font-bold text-slate-300 flex items-center gap-1.5 border border-slate-800">
-                <i class="fa-solid fa-store text-indigo-400"></i> Vendor Portal
-            </a>
-            <span class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-rose-600 to-pink-600 text-white font-extrabold flex items-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-shield-halved"></i> Admin Control Center
-            </span>
-        </div>
-    </div>
-
-    <!-- SCREEN 1: LOGIN (IF NOT AUTHENTICATED) -->
-    <div x-show="!isLoggedIn" class="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 min-h-[calc(100vh-41px)]">
-        <div class="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-100 flex flex-col">
+    <!-- ================= VIEW 1: ADMIN LOGIN SCREEN ================= -->
+    <div x-show="!isLoggedIn" class="min-h-[calc(100vh-41px)] flex items-center justify-center p-4 bg-[#fff9f8]">
+        <div class="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-soft border border-rose-100 flex flex-col items-center">
+            
+            <!-- Exact Pink Rounded-Square White Heart Logo -->
             <div class="flex items-center gap-3 mb-6">
-                <div class="w-12 h-12 bg-gradient-to-br from-slate-900 to-indigo-900 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg">
-                    <i class="fa-solid fa-shield-halved text-rose-400"></i>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">LocalLift Admin</h2>
-                    <p class="text-xs font-bold text-rose-600 uppercase tracking-wider">Super Administrator Portal</p>
+                <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-lg shadow-rose-500/25 w-12 h-12">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white" aria-hidden="true">
+                        <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                    </svg>
+                </span>
+                <div class="leading-none">
+                    <h1 class="text-2xl font-black text-slate-900 font-display">LocalLift</h1>
+                    <span class="mt-1 block text-[10px] font-bold text-rose-600 uppercase tracking-widest">SUPER ADMIN CONTROL CENTER</span>
                 </div>
             </div>
 
-            <p class="text-sm text-slate-500 mb-6 font-medium">Log in to manage registered vendors, verify applications, and govern platform orders.</p>
+            <p class="text-xs text-slate-500 font-medium text-center mb-6 max-w-xs">
+                Platform administration, vendor verification, orders surveillance and database governance.
+            </p>
 
-            <form @submit.prevent="login" class="space-y-4">
+            <form @submit.prevent="login" class="w-full space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Admin Email</label>
-                    <input type="email" x-model="loginForm.email" required class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-sm text-slate-800 focus:outline-none focus:border-slate-900 focus:bg-white transition" placeholder="admin@locallift.com">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Administrator Email</label>
+                    <input type="email" x-model="loginForm.email" required placeholder="admin@locallift.com" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Security Password</label>
-                    <input type="password" x-model="loginForm.password" required class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-sm text-slate-800 focus:outline-none focus:border-slate-900 focus:bg-white transition" placeholder="••••••••">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Admin Password</label>
+                    <input type="password" x-model="loginForm.password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-rose-600 focus:bg-white transition">
                 </div>
 
-                <button type="submit" class="w-full py-3.5 bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-slate-950/25 active:scale-95 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-lock text-rose-400 text-xs"></i>
-                    <span>Authenticate as Admin</span>
+                <div x-show="loginError" x-text="loginError" class="text-rose-600 text-xs font-bold text-center bg-rose-50 p-2.5 rounded-xl border border-rose-100"></div>
+
+                <button type="submit" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2" :disabled="isLoading">
+                    <span x-show="!isLoading">Authorize & Access Control Center</span>
+                    <i x-show="isLoading" class="fa-solid fa-spinner fa-spin"></i>
                 </button>
             </form>
 
             <!-- 1-Click Demo Admin Button -->
-            <button @click="demoLogin" class="mt-4 w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold text-xs rounded-2xl active:scale-95 transition flex items-center justify-center gap-2">
+            <button type="button" @click="demoLogin" class="mt-3 w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-2xl border border-rose-200 active:scale-95 transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-bolt text-rose-600"></i>
-                <span>One-Click Demo Admin Access</span>
+                <span>1-Click Demo Admin Sign-In</span>
             </button>
 
-            <div class="mt-6 pt-4 border-t border-slate-100 text-center">
-                <p class="text-xs text-slate-400">Default Credentials: <strong>admin@locallift.com</strong> / <strong>admin123</strong></p>
+            <div class="mt-6 p-4 bg-slate-100 rounded-2xl w-full border border-slate-200 text-left">
+                <p class="text-[10px] font-black text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lock text-slate-500"></i> Root Admin Credentials
+                </p>
+                <p class="text-xs text-slate-800 font-semibold mb-0.5">Email: <strong class="font-black text-slate-950">admin@locallift.com</strong></p>
+                <p class="text-xs text-slate-800 font-semibold">Password: <strong class="font-black text-slate-950">admin123</strong></p>
             </div>
+
+            <a href="/" class="mt-6 text-xs text-slate-400 font-bold hover:text-rose-600 transition">
+                ← Back to Customer Marketplace
+            </a>
         </div>
     </div>
 
-    <!-- SCREEN 2: ADMIN DASHBOARD (AUTHENTICATED) -->
-    <div x-show="isLoggedIn" class="flex-1 flex flex-col w-full">
+    <!-- ================= VIEW 2: AUTHENTICATED CONTROL CENTER ================= -->
+    <div x-show="isLoggedIn" class="min-h-screen flex flex-col">
         
-        <!-- HEADER -->
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-slate-950 text-white rounded-xl flex items-center justify-center font-black shadow-md">
-                    <i class="fa-solid fa-shield-halved text-rose-500"></i>
+        <!-- Header with Lovable Branding -->
+        <header class="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-sm">
+            <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3.5">
+                
+                <!-- Logo & Subtitle -->
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-lg shadow-rose-500/25 w-10 h-10">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white" aria-hidden="true">
+                            <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                        </svg>
+                    </span>
+                    <div class="leading-none">
+                        <span class="text-xl font-black text-slate-900 font-display">LocalLift</span>
+                        <span class="mt-1 block text-[10px] font-bold text-rose-600 uppercase tracking-wider">SUPER ADMIN CONTROL CENTER</span>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>LocalLift Admin Control Center</span>
-                        <span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold uppercase">Super Admin</span>
-                    </h1>
-                    <p class="text-xs text-slate-500 font-medium">Governing Vendors, Platform Catalog & Neighborhood Transactions</p>
+
+                <!-- Navigation Tabs & Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Tab Switchers -->
+                    <div class="hidden md:flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+                        <button @click="currentTab = 'vendors'" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                                :class="currentTab === 'vendors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                            <i class="fa-solid fa-store text-xs"></i>
+                            <span>Vendors</span>
+                        </button>
+                        <button @click="currentTab = 'orders'" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                                :class="currentTab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                            <i class="fa-solid fa-bag-shopping text-xs"></i>
+                            <span>Orders Audit</span>
+                        </button>
+                        <button @click="currentTab = 'fleet'; fetchDeliveryFleet()" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                                :class="currentTab === 'fleet' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                            <i class="fa-solid fa-motorcycle text-xs text-emerald-500"></i>
+                            <span>Delivery Fleet</span>
+                            <span x-show="pendingFleetCount > 0" class="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-rose-500 text-white" x-text="pendingFleetCount"></span>
+                        </button>
+                        <button @click="currentTab = 'users'" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                                :class="currentTab === 'users' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                            <i class="fa-solid fa-users text-xs"></i>
+                            <span>User Directory</span>
+                        </button>
+                        <button @click="currentTab = 'finances'; fetchFinances()" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
+                                :class="currentTab === 'finances' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                            <i class="fa-solid fa-wallet text-xs text-rose-600"></i>
+                            <span>Financial Center</span>
+                        </button>
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button @click="refreshData" 
+                            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition active:scale-95"
+                            :class="{'animate-spin text-rose-600': isRefreshing}"
+                            title="Refresh database records">
+                        <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                    </button>
+
+                    <!-- Logout Button -->
+                    <button @click="logout" class="px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Sign Out</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Header Actions -->
-            <div class="flex items-center gap-3">
-                <button @click="refreshData()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 transition active:scale-95" title="Refresh Live Data">
-                    <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': isRefreshing }"></i>
-                    <span>Refresh</span>
-                </button>
-
-                <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                    <div class="w-7 h-7 rounded-lg bg-rose-600 text-white font-extrabold text-xs flex items-center justify-center">A</div>
-                    <span class="text-xs font-bold text-slate-800" x-text="adminUser.name || 'Administrator'"></span>
-                </div>
-
-                <button @click="logout" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Sign Out">
-                    <i class="fa-solid fa-right-from-bracket text-base"></i>
-                </button>
+            <!-- Mobile Sub-Navigation -->
+            <div class="flex md:hidden border-t border-slate-200 bg-slate-50 px-4 py-2 justify-around text-xs font-bold">
+                <button @click="currentTab = 'vendors'" class="py-1 px-3 rounded-lg" :class="currentTab === 'vendors' ? 'bg-slate-900 text-white' : 'text-slate-600'">Vendors Queue</button>
+                <button @click="currentTab = 'orders'" class="py-1 px-3 rounded-lg" :class="currentTab === 'orders' ? 'bg-slate-900 text-white' : 'text-slate-600'">Live Orders</button>
+                <button @click="currentTab = 'fleet'; fetchDeliveryFleet()" class="py-1 px-3 rounded-lg" :class="currentTab === 'fleet' ? 'bg-slate-900 text-white' : 'text-slate-600'">Fleet (<span x-text="deliveryPartners.length"></span>)</button>
+                <button @click="currentTab = 'users'" class="py-1 px-3 rounded-lg" :class="currentTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-600'">Users</button>
             </div>
         </header>
 
-        <!-- SUB NAV TABS -->
-        <div class="bg-white border-b border-slate-200 px-6">
-            <nav class="flex gap-6 overflow-x-auto hide-scroll">
-                <button @click="currentTab = 'overview'" 
-                        class="py-3.5 text-xs font-extrabold border-b-2 flex items-center gap-2 transition whitespace-nowrap"
-                        :class="currentTab === 'overview' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Platform Overview</span>
-                </button>
-
-                <button @click="currentTab = 'vendors'" 
-                        class="py-3.5 text-xs font-extrabold border-b-2 flex items-center gap-2 transition whitespace-nowrap relative"
-                        :class="currentTab === 'vendors' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-store"></i>
-                    <span>Vendor Management</span>
-                    <span x-show="stats.pending_vendors > 0" class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white" x-text="stats.pending_vendors"></span>
-                </button>
-
-                <button @click="currentTab = 'orders'" 
-                        class="py-3.5 text-xs font-extrabold border-b-2 flex items-center gap-2 transition whitespace-nowrap"
-                        :class="currentTab === 'orders' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-receipt"></i>
-                    <span>Platform Orders</span>
-                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600" x-text="orders.length"></span>
-                </button>
-
-                <button @click="currentTab = 'users'" 
-                        class="py-3.5 text-xs font-extrabold border-b-2 flex items-center gap-2 transition whitespace-nowrap"
-                        :class="currentTab === 'users' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-500 hover:text-slate-800'">
-                    <i class="fa-solid fa-users"></i>
-                    <span>User Accounts</span>
-                    <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600" x-text="users.length"></span>
-                </button>
-            </nav>
-        </div>
-
-        <!-- MAIN TAB CONTENTS -->
-        <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-
-            <!-- ── TAB 1: PLATFORM OVERVIEW ────────────────────────── -->
-            <div x-show="currentTab === 'overview'" class="space-y-6">
-                
-                <!-- PENDING VENDOR APPROVAL ALERT BANNER -->
-                <div x-show="stats.pending_vendors > 0" class="bg-gradient-to-r from-amber-500 to-rose-600 text-white p-5 rounded-3xl shadow-lg flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex items-center gap-3.5">
-                        <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-black">
-                            <i class="fa-solid fa-bell animate-bounce"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-black text-lg">Action Needed: <span x-text="stats.pending_vendors"></span> Vendor Application(s) Awaiting Review</h3>
-                            <p class="text-xs text-amber-100 font-semibold">New shop owners have registered and are waiting for your approval to start selling.</p>
-                        </div>
-                    </div>
-                    <button @click="currentTab = 'vendors'; vendorFilter = 'pending'" class="px-5 py-2.5 bg-white text-slate-900 hover:bg-slate-100 font-black text-xs rounded-2xl shadow-md transition active:scale-95">
-                        Review Pending Vendors →
-                    </button>
+        <!-- Main Content Area -->
+        <main class="mx-auto max-w-7xl w-full px-4 sm:px-6 py-8 space-y-8 flex-1">
+            
+            <!-- Platform Overview Header (Matching Prototype) -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <h1 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Platform overview</h1>
+                    <span class="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Live Database
+                    </span>
                 </div>
-
-                <!-- KPI STATS CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl font-black">
-                            <i class="fa-solid fa-store"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Vendors</span>
-                            <h4 class="text-3xl font-black text-slate-900 mt-0.5" x-text="stats.total_vendors"></h4>
-                            <span class="text-[11px] text-emerald-600 font-bold" x-text="stats.approved_vendors + ' Active on Map'"></span>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-black">
-                            <i class="fa-solid fa-hourglass-half"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Pending Approvals</span>
-                            <h4 class="text-3xl font-black text-slate-900 mt-0.5" x-text="stats.pending_vendors"></h4>
-                            <span class="text-[11px] font-bold" :class="stats.pending_vendors > 0 ? 'text-amber-600' : 'text-slate-400'" x-text="stats.pending_vendors > 0 ? 'Requires Verification' : 'Queue Clear'"></span>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-black">
-                            <i class="fa-solid fa-bag-shopping"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Platform Orders</span>
-                            <h4 class="text-3xl font-black text-slate-900 mt-0.5" x-text="stats.total_orders"></h4>
-                            <span class="text-[11px] text-emerald-600 font-bold" x-text="'₹' + stats.total_revenue + ' Total GMV'"></span>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl font-black">
-                            <i class="fa-solid fa-users"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Registered Users</span>
-                            <h4 class="text-3xl font-black text-slate-900 mt-0.5" x-text="stats.total_users"></h4>
-                            <span class="text-[11px] text-purple-600 font-bold">Customers & Vendors</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RECENT ACTIVITY & SUMMARY TABLES -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    
-                    <!-- RECENT VENDOR APPLICATIONS -->
-                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="font-black text-slate-900 text-lg">Recent Vendor Applications</h3>
-                                <p class="text-xs text-slate-400 font-medium">Shops registered on portal</p>
-                            </div>
-                            <button @click="currentTab = 'vendors'" class="text-xs font-bold text-rose-600 hover:underline">View All</button>
-                        </div>
-
-                        <div class="flex-1 divide-y divide-slate-100">
-                            <template x-for="v in vendors.slice(0, 4)" :key="v.vendor_id">
-                                <div class="py-3 flex items-center justify-between gap-3">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <img :src="v.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'" class="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0">
-                                        <div class="min-w-0">
-                                            <h5 class="text-sm font-bold text-slate-900 truncate" x-text="v.business_name"></h5>
-                                            <p class="text-xs text-slate-400 truncate" x-text="v.category + ' • ' + (v.owner_name || 'Owner')"></p>
-                                        </div>
-                                    </div>
-                                    <span class="text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider"
-                                          :class="v.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (v.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200')"
-                                          x-text="v.status"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- RECENT ORDERS STREAM -->
-                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="font-black text-slate-900 text-lg">Live Platform Orders</h3>
-                                <p class="text-xs text-slate-400 font-medium">Customer orders across all local stores</p>
-                            </div>
-                            <button @click="currentTab = 'orders'" class="text-xs font-bold text-rose-600 hover:underline">View All</button>
-                        </div>
-
-                        <div class="flex-1 divide-y divide-slate-100">
-                            <template x-for="o in orders.slice(0, 4)" :key="o.order_id">
-                                <div class="py-3 flex items-center justify-between gap-3">
-                                    <div>
-                                        <div class="text-sm font-bold text-slate-900">
-                                            <span x-text="'Order #' + o.order_id"></span>
-                                            <span class="text-slate-400 font-normal">from</span>
-                                            <span x-text="o.business_name || 'Local Store'" class="text-rose-600"></span>
-                                        </div>
-                                        <p class="text-xs text-slate-400" x-text="(o.customer_name || 'Customer') + ' • ' + (o.created_at || 'Just now')"></p>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-sm font-black text-slate-900" x-text="'₹' + o.total_amount"></div>
-                                        <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase" x-text="o.status"></span>
-                                    </div>
-                                </div>
-                            </template>
-                            <div x-show="orders.length === 0" class="py-8 text-center text-xs text-slate-400">
-                                No customer orders recorded yet.
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+                <p class="text-xs font-medium text-slate-500">
+                    Logged in as: <span class="font-bold text-slate-800" x-text="adminUser.email || 'admin@locallift.com'"></span>
+                </p>
             </div>
 
-            <!-- ── TAB 2: VENDOR MANAGEMENT (THE 2ND FACTOR) ────────── -->
-            <div x-show="currentTab === 'vendors'" class="space-y-6">
+            <!-- ── SIX KPI CARDS (INCLUDING FLEET METRICS) ────────── -->
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
                 
-                <div class="flex flex-wrap items-center justify-between gap-4">
+                <!-- Card 1: Registered users -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">Registered users</p>
+                        <i class="fa-solid fa-users text-sm text-blue-500"></i>
+                    </div>
                     <div>
-                        <h2 class="text-2xl font-black text-slate-900">Vendor Governance & Approval</h2>
-                        <p class="text-xs text-slate-500 font-medium">Verify shop documents, review pending applications, and manage active sellers.</p>
+                        <p class="font-display text-2xl sm:text-3xl font-black text-slate-900" x-text="stats.total_users || '0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Active platform accounts</p>
+                    </div>
+                </div>
+
+                <!-- Card 2: Approved vendors -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">Approved vendors</p>
+                        <i class="fa-solid fa-store text-sm text-emerald-500"></i>
+                    </div>
+                    <div>
+                        <p class="font-display text-2xl sm:text-3xl font-black text-emerald-600" x-text="stats.approved_vendors || '0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Verified storefronts</p>
+                    </div>
+                </div>
+
+                <!-- Card 3: Pending approvals -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between"
+                     :class="stats.pending_vendors > 0 ? 'border-amber-300 bg-amber-50/40' : ''">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">Pending approvals</p>
+                        <i class="fa-solid fa-clock-rotate-left text-sm text-amber-500"></i>
+                    </div>
+                    <div>
+                        <p class="font-display text-2xl sm:text-3xl font-black text-amber-600" x-text="stats.pending_vendors || '0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Awaiting audit review</p>
+                    </div>
+                </div>
+
+                <!-- Card 4: Total orders -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">Total orders</p>
+                        <i class="fa-solid fa-bag-shopping text-sm text-rose-500"></i>
+                    </div>
+                    <div>
+                        <p class="font-display text-2xl sm:text-3xl font-black text-slate-900" x-text="stats.total_orders || '0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Orders processed</p>
+                    </div>
+                </div>
+
+                <!-- Card 5: GMV (Gross Merchandise Value) -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">GMV</p>
+                        <i class="fa-solid fa-indian-rupee-sign text-sm text-violet-500"></i>
+                    </div>
+                    <div>
+                        <p class="font-display text-2xl sm:text-3xl font-black text-slate-900" x-text="formatGMV(stats.total_revenue)"></p>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Gross commerce value</p>
+                    </div>
+                </div>
+
+                <!-- Card 6: Delivery Fleet -->
+                <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col justify-between"
+                     :class="stats.pending_delivery_partners > 0 ? 'border-indigo-300 bg-indigo-50/40' : ''">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <p class="text-xs font-bold text-slate-500">Delivery Fleet</p>
+                        <i class="fa-solid fa-motorcycle text-sm text-indigo-500"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-2">
+                            <p class="font-display text-2xl sm:text-3xl font-black text-indigo-600" x-text="stats.total_delivery_partners || '0'"></p>
+                            <span class="text-xs font-bold text-emerald-600" title="Online now">
+                                • <span x-text="stats.active_delivery_partners || 0"></span> online
+                            </span>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
+                            <span x-show="stats.pending_delivery_partners > 0" class="text-amber-600 font-black" x-text="stats.pending_delivery_partners + ' Pending validation'"></span>
+                            <span x-show="!stats.pending_delivery_partners">Pan-India fleet</span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── TAB 1: VENDOR APPROVAL QUEUE (CORE REQUIREMENT) ──── -->
+            <section x-show="currentTab === 'vendors'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
+                    <div>
+                        <h2 class="font-sans text-base sm:text-lg font-bold tracking-normal text-slate-900">Vendor approval queue</h2>
+                        <p class="text-xs text-slate-400 font-medium">Verify credentials, manage shop lifecycle and enforce governance</p>
+                    </div>
+
+                    <!-- Filter Pills (Matching Lovable Tabs) -->
+                    <div class="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                        <button @click="vendorFilter = 'All'" 
+                                class="rounded-lg px-3 py-1 text-xs font-bold transition flex items-center gap-1.5"
+                                :class="vendorFilter === 'All' ? 'bg-[#111827] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                            <span>All</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="vendorFilter === 'All' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-600'" x-text="vendors.length"></span>
+                        </button>
+                        
+                        <button @click="vendorFilter = 'Pending'" 
+                                class="rounded-lg px-3 py-1 text-xs font-bold transition flex items-center gap-1.5"
+                                :class="vendorFilter === 'Pending' ? 'bg-[#111827] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                            <span>Pending</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="vendorFilter === 'Pending' ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'" x-text="pendingCount"></span>
+                        </button>
+                        
+                        <button @click="vendorFilter = 'Approved'" 
+                                class="rounded-lg px-3 py-1 text-xs font-bold transition flex items-center gap-1.5"
+                                :class="vendorFilter === 'Approved' ? 'bg-[#111827] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                            <span>Approved</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="vendorFilter === 'Approved' ? 'bg-emerald-400 text-slate-900' : 'bg-emerald-100 text-emerald-800'" x-text="approvedCount"></span>
+                        </button>
+                        
+                        <button @click="vendorFilter = 'Suspended'" 
+                                class="rounded-lg px-3 py-1 text-xs font-bold transition flex items-center gap-1.5"
+                                :class="vendorFilter === 'Suspended' ? 'bg-[#111827] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                            <span>Suspended</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="vendorFilter === 'Suspended' ? 'bg-rose-400 text-white' : 'bg-rose-100 text-rose-800'" x-text="suspendedCount"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50/80 text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3">Shop</th>
+                                <th class="px-4 py-3">Category</th>
+                                <th class="px-4 py-3">Owner & Contact</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-5 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            
+                            <!-- Empty State -->
+                            <tr x-show="filteredVendors.length === 0">
+                                <td colspan="5" class="py-12 text-center text-xs text-slate-400">
+                                    <div class="flex flex-col items-center justify-center gap-2">
+                                        <i class="fa-solid fa-store-slash text-2xl text-slate-300"></i>
+                                        <span>No vendors found matching '<span x-text="vendorFilter"></span>' status.</span>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Vendor Rows (Matching Lovable Table Design) -->
+                            <template x-for="v in filteredVendors" :key="v.vendor_id || v.id">
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    
+                                    <!-- Shop Name & ID -->
+                                    <td class="px-5 py-3.5">
+                                        <div class="font-extrabold text-slate-900" x-text="v.business_name || v.name"></div>
+                                        <div class="text-[11px] text-slate-400" x-text="'#VEN-' + (v.vendor_id || v.id)"></div>
+                                    </td>
+
+                                    <!-- Category -->
+                                    <td class="px-4 py-3.5">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200" x-text="v.category || 'General'"></span>
+                                    </td>
+
+                                    <!-- Owner & Phone -->
+                                    <td class="px-4 py-3.5">
+                                        <div class="font-bold text-slate-800" x-text="v.owner_name || v.owner || 'Registered Partner'"></div>
+                                        <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-phone text-[9px]"></i>
+                                            <span x-text="v.phone || 'N/A'"></span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Status Badge (Matching Lovable Color Specs) -->
+                                    <td class="px-4 py-3.5">
+                                        <!-- Pending: Warning / Amber -->
+                                        <template x-if="v.status === 'pending'">
+                                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                <i class="fa-solid fa-circle text-[6px]"></i> Pending Review
+                                            </span>
+                                        </template>
+
+                                        <!-- Approved: Success / Green -->
+                                        <template x-if="v.status === 'approved' || !v.status">
+                                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                <i class="fa-solid fa-circle-check text-[10px]"></i> Approved
+                                            </span>
+                                        </template>
+
+                                        <!-- Suspended or Rejected: Destructive / Rose -->
+                                        <template x-if="v.status === 'suspended' || v.status === 'rejected'">
+                                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                                <i class="fa-solid fa-circle-xmark text-[10px]"></i>
+                                                <span x-text="v.status === 'suspended' ? 'Suspended' : 'Rejected'"></span>
+                                            </span>
+                                        </template>
+                                    </td>
+
+                                    <!-- Action Buttons -->
+                                    <td class="px-5 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                                        
+                                        <!-- Actions when PENDING -->
+                                        <template x-if="v.status === 'pending'">
+                                            <div class="inline-flex items-center gap-1.5">
+                                                <button @click="updateVendorStatus(v.vendor_id || v.id, 'approved')" 
+                                                        class="rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-xs font-black text-white shadow-sm transition active:scale-95 flex items-center gap-1">
+                                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                                    <span>Approve</span>
+                                                </button>
+                                                <button @click="updateVendorStatus(v.vendor_id || v.id, 'rejected')" 
+                                                        class="rounded-lg border border-slate-200 bg-white hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition active:scale-95">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <!-- Actions when APPROVED -->
+                                        <template x-if="v.status === 'approved' || !v.status">
+                                            <div class="inline-flex items-center gap-1.5">
+                                                <button @click="updateVendorStatus(v.vendor_id || v.id, 'suspended')" 
+                                                        class="rounded-lg border border-rose-200 bg-white hover:bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 transition active:scale-95 flex items-center gap-1">
+                                                    <i class="fa-solid fa-pause text-[10px]"></i>
+                                                    <span>Suspend</span>
+                                                </button>
+                                                <button @click="deleteVendor(v.vendor_id || v.id)" 
+                                                        class="rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 px-2 py-1.5 text-xs transition" title="Delete Store">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <!-- Actions when SUSPENDED / REJECTED -->
+                                        <template x-if="v.status === 'suspended' || v.status === 'rejected'">
+                                            <div class="inline-flex items-center gap-1.5">
+                                                <button @click="updateVendorStatus(v.vendor_id || v.id, 'approved')" 
+                                                        class="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-black text-white shadow-sm transition active:scale-95 flex items-center gap-1">
+                                                    <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i>
+                                                    <span>Re-Approve</span>
+                                                </button>
+                                                <button @click="deleteVendor(v.vendor_id || v.id)" 
+                                                        class="rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 px-2 py-1.5 text-xs transition" title="Delete Store">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ── TAB 2: LIVE ORDERS AUDIT ─────────────────────────── -->
+            <section x-show="currentTab === 'orders'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
+                    <div>
+                        <h2 class="font-sans text-base sm:text-lg font-bold tracking-normal text-slate-900">Live Orders Audit Log</h2>
+                        <p class="text-xs text-slate-400 font-medium">Hyperlocal transactions across all regional storefronts</p>
+                    </div>
+                    <span class="text-xs font-black bg-rose-50 text-rose-700 px-3 py-1 rounded-full border border-rose-200" x-text="orders.length + ' Total Orders'"></span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50/80 text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3">Order ID</th>
+                                <th class="px-4 py-3">Customer Details</th>
+                                <th class="px-4 py-3">Store</th>
+                                <th class="px-4 py-3">Items / Payload</th>
+                                <th class="px-4 py-3">Amount</th>
+                                <th class="px-4 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr x-show="orders.length === 0">
+                                <td colspan="6" class="py-12 text-center text-xs text-slate-400">
+                                    No customer orders in audit trail yet.
+                                </td>
+                            </tr>
+
+                            <template x-for="ord in orders" :key="ord.order_id || ord.id">
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <td class="px-5 py-3.5 font-black text-slate-900">
+                                        <span x-text="'#' + (ord.order_id || ord.id)"></span>
+                                        <div class="text-[10px] text-slate-400 font-medium" x-text="ord.created_at || 'Recent'"></div>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <div class="font-bold text-slate-800" x-text="ord.customer_name || ('User #' + ord.user_id)"></div>
+                                        <div class="text-[11px] text-slate-400" x-text="ord.delivery_address || 'Local Delivery'"></div>
+                                    </td>
+                                    <td class="px-4 py-3.5 font-bold text-slate-800" x-text="ord.shop_name || ('Vendor #' + ord.vendor_id)"></td>
+                                    <td class="px-4 py-3.5 text-xs text-slate-500 max-w-xs truncate" x-text="formatItems(ord)"></td>
+                                    <td class="px-4 py-3.5 font-black text-rose-600">₹<span x-text="ord.total_amount"></span></td>
+                                    <td class="px-4 py-3.5">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                              :class="{
+                                                  'bg-amber-100 text-amber-800': ord.status === 'pending',
+                                                  'bg-blue-100 text-blue-800': ord.status === 'confirmed',
+                                                  'bg-indigo-100 text-indigo-800': ord.status === 'ready',
+                                                  'bg-emerald-100 text-emerald-800': ord.status === 'delivered'
+                                              }"
+                                              x-text="(ord.status || 'pending').toUpperCase()">
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ── TAB 3: USER DIRECTORY ────────────────────────────── -->
+            <section x-show="currentTab === 'users'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
+                    <div>
+                        <h2 class="font-sans text-base sm:text-lg font-bold tracking-normal text-slate-900">User Accounts Directory</h2>
+                        <p class="text-xs text-slate-400 font-medium">All registered consumers, vendor partners and super administrators</p>
+                    </div>
+                    <span class="text-xs font-black bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200" x-text="users.length + ' Platform Users'"></span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50/80 text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3">User ID</th>
+                                <th class="px-4 py-3">Full Name</th>
+                                <th class="px-4 py-3">Email Address</th>
+                                <th class="px-4 py-3">Phone</th>
+                                <th class="px-4 py-3">Role / User Type</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr x-show="users.length === 0">
+                                <td colspan="5" class="py-12 text-center text-xs text-slate-400">
+                                    No user accounts located.
+                                </td>
+                            </tr>
+
+                            <template x-for="u in users" :key="u.user_id || u.id">
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <td class="px-5 py-3.5 font-bold text-slate-400" x-text="'#UID-' + (u.user_id || u.id)"></td>
+                                    <td class="px-4 py-3.5 font-black text-slate-900" x-text="u.name || 'Anonymous User'"></td>
+                                    <td class="px-4 py-3.5 font-medium text-slate-600" x-text="u.email"></td>
+                                    <td class="px-4 py-3.5 text-xs text-slate-500" x-text="u.phone || 'N/A'"></td>
+                                    <td class="px-4 py-3.5">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold capitalize"
+                                              :class="{
+                                                  'bg-rose-100 text-rose-800 border border-rose-200': (u.user_type === 'admin' || u.role === 'admin'),
+                                                  'bg-purple-100 text-purple-800 border border-purple-200': (u.user_type === 'vendor' || u.role === 'vendor'),
+                                                  'bg-slate-100 text-slate-800 border border-slate-200': (u.user_type === 'customer' || u.role === 'customer' || !u.user_type)
+                                              }"
+                                              x-text="u.user_type || u.role || 'customer'">
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ── TAB 4: DELIVERY FLEET MANAGEMENT ──────────────────── -->
+            <section x-show="currentTab === 'fleet'" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+                <!-- Fleet Header with Filters -->
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
+                    <div>
+                        <h2 class="font-sans text-base sm:text-lg font-bold tracking-normal text-slate-900">Delivery Fleet & Verification Queue</h2>
+                        <p class="text-xs text-slate-400 font-medium">Pan-India rider onboarding, document validation and status controls</p>
                     </div>
 
                     <!-- Filter pills -->
-                    <div class="flex items-center gap-2 bg-white p-1 rounded-2xl border border-slate-200">
-                        <button @click="vendorFilter = 'all'" 
-                                class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition"
-                                :class="vendorFilter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'">
-                            All (<span x-text="vendors.length"></span>)
+                    <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+                        <button @click="fleetFilter = 'All'" 
+                                class="px-3 py-1 rounded-lg transition"
+                                :class="fleetFilter === 'All' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                            All (<span x-text="deliveryPartners.length"></span>)
                         </button>
-                        <button @click="vendorFilter = 'pending'" 
-                                class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5"
-                                :class="vendorFilter === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'">
-                            <span>Pending Review</span>
-                            <span x-show="stats.pending_vendors > 0" class="w-2 h-2 rounded-full bg-rose-300"></span>
-                            (<span x-text="stats.pending_vendors"></span>)
+                        <button @click="fleetFilter = 'Pending'" 
+                                class="px-3 py-1 rounded-lg transition flex items-center gap-1"
+                                :class="fleetFilter === 'Pending' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                            Pending (<span x-text="pendingFleetCount"></span>)
                         </button>
-                        <button @click="vendorFilter = 'approved'" 
-                                class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition"
-                                :class="vendorFilter === 'approved' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'">
-                            Approved (<span x-text="stats.approved_vendors"></span>)
+                        <button @click="fleetFilter = 'Approved'" 
+                                class="px-3 py-1 rounded-lg transition"
+                                :class="fleetFilter === 'Approved' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                            Approved (<span x-text="approvedFleetCount"></span>)
+                        </button>
+                        <button @click="fleetFilter = 'Suspended'" 
+                                class="px-3 py-1 rounded-lg transition"
+                                :class="fleetFilter === 'Suspended' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                            Suspended (<span x-text="suspendedFleetCount"></span>)
                         </button>
                     </div>
                 </div>
 
-                <!-- VENDORS GRID -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <template x-for="v in filteredVendors" :key="v.vendor_id">
-                        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition">
-                            
-                            <div>
-                                <!-- Top: Image + Category + Status Badge -->
-                                <div class="flex items-start gap-3.5 mb-3.5">
-                                    <img :src="v.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200'" class="w-14 h-14 rounded-2xl object-cover border border-slate-100 shrink-0">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center justify-between gap-1">
-                                            <span class="text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md" x-text="v.category"></span>
-                                            <span class="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase"
-                                                  :class="v.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (v.status === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-rose-50 text-rose-700 border border-rose-200')"
-                                                  x-text="v.status"></span>
-                                        </div>
-                                        <h4 class="font-black text-slate-900 text-base mt-1 truncate" x-text="v.business_name"></h4>
-                                        <p class="text-xs text-slate-400 font-semibold truncate" x-text="'Owner: ' + (v.owner_name || 'Partner')"></p>
-                                    </div>
-                                </div>
+                <!-- Fleet Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50/80 text-xs font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="px-5 py-3">Rider / Partner</th>
+                                <th class="px-4 py-3">Vehicle & License</th>
+                                <th class="px-4 py-3">Operating Zone</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Trips / Rating</th>
+                                <th class="px-5 py-3 text-right">Administrative Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr x-show="filteredFleet.length === 0">
+                                <td colspan="6" class="py-12 text-center text-xs text-slate-400">
+                                    No delivery partners match the selected filter.
+                                </td>
+                            </tr>
 
-                                <!-- Description & Meta -->
-                                <p class="text-xs text-slate-600 line-clamp-2 mb-3.5 font-medium" x-text="v.description"></p>
-
-                                <div class="space-y-1.5 text-xs text-slate-500 bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-4">
-                                    <div class="flex items-center gap-2 truncate">
-                                        <i class="fa-solid fa-location-dot text-slate-400 w-4"></i>
-                                        <span class="truncate" x-text="v.address + ', ' + (v.city || 'Local City')"></span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <i class="fa-solid fa-phone text-slate-400 w-4"></i>
-                                        <span x-text="v.phone || 'Not provided'"></span>
-                                    </div>
-                                    <div class="flex items-center gap-2 truncate">
-                                        <i class="fa-solid fa-envelope text-slate-400 w-4"></i>
-                                        <span class="truncate" x-text="v.email || 'Not provided'"></span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <i class="fa-solid fa-box text-slate-400 w-4"></i>
-                                        <span x-text="(v.product_count || 0) + ' Products in Catalog'"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- ACTIONS / APPROVAL BUTTONS -->
-                            <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
-                                <!-- If Pending: Prominent 1-click Approve / Reject -->
-                                <template x-if="v.status === 'pending'">
-                                    <div class="w-full flex gap-2">
-                                        <button @click="updateVendorStatus(v.vendor_id, 'approved')" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-1.5">
-                                            <i class="fa-solid fa-check"></i>
-                                            <span>Approve Partner</span>
-                                        </button>
-                                        <button @click="updateVendorStatus(v.vendor_id, 'rejected')" class="px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold active:scale-95 transition">
-                                            <i class="fa-solid fa-xmark"></i>
-                                        </button>
-                                    </div>
-                                </template>
-
-                                <!-- If Approved: Actions to suspend, toggle open, or delete -->
-                                <template x-if="v.status === 'approved'">
-                                    <div class="w-full flex items-center justify-between gap-2">
-                                        <span class="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                                            <i class="fa-solid fa-circle-check"></i> Verified Live
-                                        </span>
-                                        <div class="flex items-center gap-2">
-                                            <button @click="updateVendorStatus(v.vendor_id, 'rejected')" class="text-xs text-amber-600 hover:underline font-bold px-2 py-1 bg-amber-50 rounded-lg">
-                                                Suspend
-                                            </button>
-                                            <button @click="deleteVendor(v.vendor_id)" class="text-xs text-rose-500 hover:text-rose-700 p-1" title="Delete Vendor">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- If Rejected: Option to re-approve -->
-                                <template x-if="v.status === 'rejected'">
-                                    <div class="w-full flex items-center justify-between gap-2">
-                                        <span class="text-xs text-rose-600 font-bold">Suspended</span>
-                                        <button @click="updateVendorStatus(v.vendor_id, 'approved')" class="text-xs text-emerald-600 hover:underline font-bold px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
-                                            Re-Approve
-                                        </button>
-                                    </div>
-                                </template>
-                            </div>
-
-                        </div>
-                    </template>
-                </div>
-
-                <div x-show="filteredVendors.length === 0" class="bg-white rounded-3xl p-12 text-center border border-slate-200">
-                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto mb-3 text-2xl">
-                        <i class="fa-solid fa-store-slash"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-800 text-base">No vendors found in this category</h4>
-                    <p class="text-xs text-slate-400 mt-1">Try switching to 'All' or checking another tab.</p>
-                </div>
-
-            </div>
-
-            <!-- ── TAB 3: PLATFORM ORDERS MONITOR ──────────────────── -->
-            <div x-show="currentTab === 'orders'" class="space-y-6">
-                <div>
-                    <h2 class="text-2xl font-black text-slate-900">Live Platform Orders Log</h2>
-                    <p class="text-xs text-slate-500 font-medium">Real-time audit trail of all hyperlocal purchases placed across every registered shop.</p>
-                </div>
-
-                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-400 font-black uppercase tracking-wider border-b border-slate-200">
-                                    <th class="p-4">Order ID</th>
-                                    <th class="p-4">Customer</th>
-                                    <th class="p-4">Shop</th>
-                                    <th class="p-4">Items Summary</th>
-                                    <th class="p-4">Amount</th>
-                                    <th class="p-4">Status</th>
-                                    <th class="p-4">Timestamp</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
-                                <template x-for="o in orders" :key="o.order_id">
-                                    <tr class="hover:bg-slate-50/80 transition">
-                                        <td class="p-4 font-black text-slate-900" x-text="'#' + o.order_id"></td>
-                                        <td class="p-4">
-                                            <div class="font-bold text-slate-900" x-text="o.customer_name || 'Customer'"></div>
-                                            <div class="text-[11px] text-slate-400" x-text="o.customer_phone || ''"></div>
-                                        </td>
-                                        <td class="p-4">
-                                            <span class="font-bold text-rose-600" x-text="o.business_name || 'Store #' + o.vendor_id"></span>
-                                        </td>
-                                        <td class="p-4 max-w-xs truncate">
-                                            <template x-for="i in (o.items || [])" :key="i.order_item_id || Math.random()">
-                                                <span class="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded mr-1 mb-1 text-[11px]" x-text="i.quantity + 'x ' + (i.product_name || 'Item')"></span>
-                                            </template>
-                                            <span x-show="!o.items || o.items.length === 0" class="text-slate-400 italic">Order items recorded</span>
-                                        </td>
-                                        <td class="p-4 font-black text-slate-900 text-sm" x-text="'₹' + o.total_amount"></td>
-                                        <td class="p-4">
-                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200" x-text="o.status"></span>
-                                        </td>
-                                        <td class="p-4 text-slate-400 text-[11px]" x-text="o.created_at || 'Recent'"></td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div x-show="orders.length === 0" class="p-8 text-center text-xs text-slate-400">
-                        No orders have been recorded on the system yet.
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── TAB 4: USERS DIRECTORY ─────────────────────────── -->
-            <div x-show="currentTab === 'users'" class="space-y-6">
-                <div>
-                    <h2 class="text-2xl font-black text-slate-900">User Accounts Directory</h2>
-                    <p class="text-xs text-slate-500 font-medium">All registered consumers, store owners and administrators on LocalLift.</p>
-                </div>
-
-                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-400 font-black uppercase tracking-wider border-b border-slate-200">
-                                    <th class="p-4">User</th>
-                                    <th class="p-4">Role</th>
-                                    <th class="p-4">Contact</th>
-                                    <th class="p-4">Orders Placed</th>
-                                    <th class="p-4">Registered On</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
-                                <template x-for="u in users" :key="u.user_id">
-                                    <tr class="hover:bg-slate-50/80 transition">
-                                        <td class="p-4">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 font-black flex items-center justify-center" x-text="(u.name || 'U')[0].toUpperCase()"></div>
-                                                <div>
-                                                    <div class="font-bold text-slate-900" x-text="u.name"></div>
-                                                    <div class="text-[11px] text-slate-400" x-text="u.email"></div>
+                            <template x-for="dp in filteredFleet" :key="dp.partner_id">
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <td class="px-5 py-3.5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="relative w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-600 text-xs">
+                                                <span x-text="(dp.full_name || dp.user_name || 'R').charAt(0)"></span>
+                                                <span x-show="dp.is_online === 1 && dp.status === 'approved'" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                                            </div>
+                                            <div>
+                                                <div class="font-black text-slate-900" x-text="dp.full_name || dp.user_name"></div>
+                                                <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                                                    <span x-text="dp.phone"></span> • <span x-text="dp.email"></span>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td class="p-4">
-                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-motorcycle text-indigo-500 text-xs"></i>
+                                            <span x-text="dp.vehicle_type || 'Motorcycle'"></span>
+                                        </div>
+                                        <div class="text-[11px] font-mono text-slate-500 uppercase tracking-wider font-bold" x-text="dp.vehicle_number || 'N/A'"></div>
+                                        <div class="text-[10px] text-slate-400 font-mono" x-show="dp.driving_license_number" x-text="'DL: ' + dp.driving_license_number"></div>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <div class="font-bold text-slate-800" x-text="dp.city_name || 'Ludhiana'"></div>
+                                        <div class="text-[11px] text-slate-400" x-text="dp.zone_name || 'All Zones'"></div>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black capitalize"
+                                              :class="{
+                                                  'bg-emerald-100 text-emerald-800 border border-emerald-200': dp.status === 'approved',
+                                                  'bg-amber-100 text-amber-800 border border-amber-200': dp.status === 'pending',
+                                                  'bg-rose-100 text-rose-800 border border-rose-200': (dp.status === 'suspended' || dp.status === 'rejected')
+                                              }">
+                                            <span class="w-1.5 h-1.5 rounded-full"
                                                   :class="{
-                                                      'bg-purple-50 text-purple-700 border border-purple-200': u.user_type === 'admin',
-                                                      'bg-indigo-50 text-indigo-700 border border-indigo-200': u.user_type === 'vendor',
-                                                      'bg-rose-50 text-rose-700 border border-rose-200': u.user_type === 'customer'
-                                                  }"
-                                                  x-text="u.user_type"></span>
+                                                      'bg-emerald-500': dp.status === 'approved',
+                                                      'bg-amber-500': dp.status === 'pending',
+                                                      'bg-rose-500': (dp.status === 'suspended' || dp.status === 'rejected')
+                                                  }"></span>
+                                            <span x-text="dp.status"></span>
+                                        </span>
+                                        <div class="text-[10px] font-bold mt-1" :class="dp.is_online ? 'text-emerald-600' : 'text-slate-400'">
+                                            <span x-text="dp.is_online ? '• Online (Accepting)' : '• Offline'"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <div class="font-bold text-slate-800 flex items-center gap-1">
+                                            <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                                            <span x-text="dp.rating ? Number(dp.rating).toFixed(1) : '5.0'"></span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400" x-text="(dp.total_trips || 0) + ' completed trips'"></div>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right space-x-1.5">
+                                        <!-- Actions for Pending -->
+                                        <template x-if="dp.status === 'pending'">
+                                            <div class="inline-flex gap-1.5">
+                                                <button @click="updatePartnerStatus(dp.partner_id, 'approved')" 
+                                                        class="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition">
+                                                    Approve
+                                                </button>
+                                                <button @click="updatePartnerStatus(dp.partner_id, 'rejected')" 
+                                                        class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-200 transition">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <!-- Actions for Approved -->
+                                        <template x-if="dp.status === 'approved'">
+                                            <button @click="updatePartnerStatus(dp.partner_id, 'suspended')" 
+                                                    class="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition">
+                                                Suspend
+                                            </button>
+                                        </template>
+
+                                        <!-- Actions for Suspended / Rejected -->
+                                        <template x-if="dp.status === 'suspended' || dp.status === 'rejected'">
+                                            <button @click="updatePartnerStatus(dp.partner_id, 'approved')" 
+                                                    class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
+                                                Re-Activate
+                                            </button>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= STAGE 11: FINANCIAL CONTROL CENTER ================= -->
+            <section x-show="currentTab === 'finances'" class="space-y-6">
+                <!-- KPI Header Grid -->
+                <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Gross Merchandise Value</span>
+                            <i class="fa-solid fa-chart-line text-rose-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-slate-900">₹<span x-text="finances.metrics.gmv || '0.00'"></span></p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Platform Volume</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-emerald-200 bg-white p-4 shadow-soft">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Successful Payments</span>
+                            <i class="fa-solid fa-shield-check text-emerald-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-emerald-700">₹<span x-text="finances.metrics.successful_payments_volume || '0.00'"></span></p>
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase mt-1"><span x-text="finances.metrics.successful_payments_count || 0"></span> Transactions Verified</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-amber-200 bg-white p-4 shadow-soft">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Vendor Liabilities</span>
+                            <i class="fa-solid fa-store text-amber-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-amber-700">₹<span x-text="finances.metrics.vendor_liabilities || '0.00'"></span></p>
+                        <p class="text-[10px] text-amber-600 font-bold uppercase mt-1">Pending Settlements</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-blue-200 bg-white p-4 shadow-soft">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Platform Commission</span>
+                            <i class="fa-solid fa-coins text-blue-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-blue-700">₹<span x-text="finances.metrics.platform_commission || '0.00'"></span></p>
+                        <p class="text-[10px] text-blue-600 font-bold uppercase mt-1">Net Platform Revenue</p>
+                    </div>
+                </div>
+
+                <!-- Secondary KPI Bar -->
+                <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-soft text-xs font-medium">
+                    <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50">
+                        <span class="text-slate-500">Delivery Payout Liability:</span>
+                        <span class="font-black text-slate-800">₹<span x-text="finances.metrics.delivery_liabilities || '0.00'"></span></span>
+                    </div>
+                    <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50">
+                        <span class="text-slate-500">Refunds Processed:</span>
+                        <span class="font-black text-rose-600">₹<span x-text="finances.metrics.refunds_volume || '0.00'"></span> (<span x-text="finances.metrics.refunds_count || 0"></span>)</span>
+                    </div>
+                    <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 col-span-2 sm:col-span-1">
+                        <span class="text-slate-500">Failed / Cancelled:</span>
+                        <span class="font-black text-slate-600">₹<span x-text="finances.metrics.failed_payments_volume || '0.00'"></span> (<span x-text="finances.metrics.failed_payments_count || 0"></span>)</span>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation for Financial Center -->
+                <div class="rounded-2xl border border-slate-200 bg-white shadow-soft overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+                        <div class="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-xl text-xs font-bold">
+                            <button @click="financeSubTab = 'settlements'"
+                                    :class="financeSubTab === 'settlements' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                                    class="px-3 py-1.5 rounded-lg transition">
+                                Vendor Settlements
+                            </button>
+                            <button @click="financeSubTab = 'payouts'"
+                                    :class="financeSubTab === 'payouts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                                    class="px-3 py-1.5 rounded-lg transition">
+                                Delivery Payouts
+                            </button>
+                            <button @click="financeSubTab = 'refunds'"
+                                    :class="financeSubTab === 'refunds' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                                    class="px-3 py-1.5 rounded-lg transition">
+                                Refund Execution
+                            </button>
+                            <button @click="financeSubTab = 'payments'"
+                                    :class="financeSubTab === 'payments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                                    class="px-3 py-1.5 rounded-lg transition">
+                                Payments Audit
+                            </button>
+                            <button @click="financeSubTab = 'audit'"
+                                    :class="financeSubTab === 'audit' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                                    class="px-3 py-1.5 rounded-lg transition">
+                                Financial Audit Log
+                            </button>
+                        </div>
+
+                        <!-- Commission Config Form -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-500">Commission Rate:</span>
+                            <input type="number" step="0.5" min="0" max="50" x-model="commissionForm.vendor_commission_pct" class="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-center">
+                            <button @click="updateCommission()" class="px-2.5 py-1 bg-slate-900 text-white font-bold rounded-lg text-xs hover:bg-slate-800 transition">Save %</button>
+                        </div>
+                    </div>
+
+                    <!-- 1. VENDOR SETTLEMENTS TAB -->
+                    <div x-show="financeSubTab === 'settlements'" class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Settlement #</th>
+                                    <th class="px-4 py-3">Vendor</th>
+                                    <th class="px-4 py-3">Child Order</th>
+                                    <th class="px-4 py-3">Gross</th>
+                                    <th class="px-4 py-3">Commission</th>
+                                    <th class="px-4 py-3">Deductions</th>
+                                    <th class="px-4 py-3">Net Payable</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-medium">
+                                <template x-if="!finances.settlements || finances.settlements.length === 0">
+                                    <tr><td colspan="9" class="py-8 text-center text-slate-400">No vendor settlements on record.</td></tr>
+                                </template>
+                                <template x-for="st in finances.settlements" :key="st.settlement_id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-4 py-3 font-bold text-slate-900" x-text="'#' + st.settlement_id"></td>
+                                        <td class="px-4 py-3 font-bold text-slate-800" x-text="st.business_name"></td>
+                                        <td class="px-4 py-3 font-semibold text-slate-700" x-text="'Order #' + st.child_order_id"></td>
+                                        <td class="px-4 py-3">₹<span x-text="st.gross_amount"></span></td>
+                                        <td class="px-4 py-3 text-slate-500">₹<span x-text="st.platform_commission"></span></td>
+                                        <td class="px-4 py-3 text-rose-500">₹<span x-text="st.deductions"></span></td>
+                                        <td class="px-4 py-3 font-black text-emerald-600">₹<span x-text="st.net_payable"></span></td>
+                                        <td class="px-4 py-3">
+                                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full border"
+                                                  :class="st.settlement_status === 'settled' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+                                                  x-text="st.settlement_status"></span>
                                         </td>
-                                        <td class="p-4" x-text="u.phone || '—'"></td>
-                                        <td class="p-4 font-black text-slate-900" x-text="u.orders_count || 0"></td>
-                                        <td class="p-4 text-slate-400 text-[11px]" x-text="u.created_at || 'System Seed'"></td>
+                                        <td class="px-4 py-3 text-right">
+                                            <button x-show="st.settlement_status === 'pending'"
+                                                    @click="settleVendor(st.settlement_id)"
+                                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-sm active:scale-95">
+                                                Mark Paid
+                                            </button>
+                                            <span x-show="st.settlement_status === 'settled'" class="text-[11px] text-slate-400 font-bold">Settled</span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 2. DELIVERY PAYOUTS TAB -->
+                    <div x-show="financeSubTab === 'payouts'" class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Ledger #</th>
+                                    <th class="px-4 py-3">Delivery Partner</th>
+                                    <th class="px-4 py-3">Order Handover</th>
+                                    <th class="px-4 py-3">Base Payout</th>
+                                    <th class="px-4 py-3">Total Compensation</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-medium">
+                                <template x-if="!finances.delivery_payouts || finances.delivery_payouts.length === 0">
+                                    <tr><td colspan="7" class="py-8 text-center text-slate-400">No delivery payouts pending.</td></tr>
+                                </template>
+                                <template x-for="p in finances.delivery_payouts" :key="p.ledger_id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-4 py-3 font-bold text-slate-900" x-text="'#' + p.ledger_id"></td>
+                                        <td class="px-4 py-3">
+                                            <p class="font-bold text-slate-800" x-text="p.partner_name"></p>
+                                            <p class="text-[10px] text-slate-400" x-text="p.partner_phone"></p>
+                                        </td>
+                                        <td class="px-4 py-3" x-text="'Order #' + p.order_id"></td>
+                                        <td class="px-4 py-3">₹<span x-text="p.base_payout"></span></td>
+                                        <td class="px-4 py-3 font-black text-emerald-600">₹<span x-text="p.total_amount"></span></td>
+                                        <td class="px-4 py-3">
+                                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full border"
+                                                  :class="p.is_settled == 1 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+                                                  x-text="p.is_settled == 1 ? 'SETTLED' : 'PENDING'"></span>
+                                        </td>
+                                        <td class="px-4 py-3 text-right">
+                                            <button x-show="p.is_settled == 0"
+                                                    @click="settleDelivery(p.ledger_id)"
+                                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-sm active:scale-95">
+                                                Settle Payout
+                                            </button>
+                                            <span x-show="p.is_settled == 1" class="text-[11px] text-slate-400 font-bold">Paid</span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 3. REFUND EXECUTION TAB -->
+                    <div x-show="financeSubTab === 'refunds'" class="p-6">
+                        <div class="max-w-xl mx-auto bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                            <div>
+                                <h3 class="font-display font-black text-base text-slate-900">Execute Order Refund</h3>
+                                <p class="text-xs text-slate-500">Supports full and partial refunds. Verified against gateway records and auditable.</p>
+                            </div>
+                            <form @submit.prevent="executeRefund()" class="space-y-3 text-xs">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Parent Group ID *</label>
+                                        <input type="number" required x-model="refundForm.group_id" placeholder="e.g. 101" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Child Order ID (Optional)</label>
+                                        <input type="number" x-model="refundForm.child_order_id" placeholder="e.g. 501" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Refund Amount (₹) *</label>
+                                        <input type="number" step="0.5" required x-model="refundForm.amount" placeholder="e.g. 150.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Reason *</label>
+                                        <input type="text" required x-model="refundForm.reason" placeholder="e.g. Defective item returned" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-3 rounded-xl shadow-brand transition active:scale-95">
+                                    Execute Refund
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 4. PAYMENTS AUDIT TAB -->
+                    <div x-show="financeSubTab === 'payments'" class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Payment #</th>
+                                    <th class="px-4 py-3">Group #</th>
+                                    <th class="px-4 py-3">Customer</th>
+                                    <th class="px-4 py-3">Gateway Order ID</th>
+                                    <th class="px-4 py-3">Payment ID</th>
+                                    <th class="px-4 py-3">Amount</th>
+                                    <th class="px-4 py-3">Method</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-medium">
+                                <template x-for="py in finances.payments" :key="py.payment_id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-4 py-3 font-bold text-slate-900" x-text="'#' + py.payment_id"></td>
+                                        <td class="px-4 py-3 font-bold text-slate-800" x-text="'#' + py.group_id"></td>
+                                        <td class="px-4 py-3 text-slate-700" x-text="py.customer_name || 'Customer'"></td>
+                                        <td class="px-4 py-3 font-mono text-[10px] text-slate-500" x-text="py.gateway_order_id"></td>
+                                        <td class="px-4 py-3 font-mono text-[10px] text-slate-500" x-text="py.gateway_payment_id || 'N/A'"></td>
+                                        <td class="px-4 py-3 font-black text-rose-600">₹<span x-text="py.amount"></span></td>
+                                        <td class="px-4 py-3 uppercase text-[10px] font-bold" x-text="py.payment_method"></td>
+                                        <td class="px-4 py-3">
+                                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full border"
+                                                  :class="py.payment_status === 'captured' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'"
+                                                  x-text="py.payment_status"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 5. FINANCIAL AUDIT LOG TAB -->
+                    <div x-show="financeSubTab === 'audit'" class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Timestamp</th>
+                                    <th class="px-4 py-3">Entity</th>
+                                    <th class="px-4 py-3">Action</th>
+                                    <th class="px-4 py-3">Actor</th>
+                                    <th class="px-4 py-3">Amount</th>
+                                    <th class="px-4 py-3">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+                                <template x-for="log in finances.audit_logs" :key="log.log_id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-4 py-3 text-slate-400" x-text="log.created_at"></td>
+                                        <td class="px-4 py-3 font-bold uppercase text-slate-700" x-text="log.entity_type + (log.entity_id ? ' #' + log.entity_id : '')"></td>
+                                        <td class="px-4 py-3 font-black text-rose-600" x-text="log.action"></td>
+                                        <td class="px-4 py-3 text-slate-600" x-text="log.actor_type"></td>
+                                        <td class="px-4 py-3 font-bold text-slate-800" x-text="log.amount ? '₹' + log.amount : '-'"></td>
+                                        <td class="px-4 py-3 text-slate-500 font-sans text-xs" x-text="log.details"></td>
                                     </tr>
                                 </template>
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
+            </section>
+
 
         </main>
     </div>
 
-    <!-- JAVASCRIPT APP LOGIC -->
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
     <script>
         function adminApp() {
             return {
                 isLoggedIn: false,
-                currentTab: 'overview',
-                vendorFilter: 'all',
+                currentTab: 'vendors',
+                vendorFilter: 'All',
                 isRefreshing: false,
+                isLoading: false,
+                loginError: '',
                 
                 adminUser: { name: 'Platform Administrator', email: 'admin@locallift.com' },
-                loginForm: { email: '', password: '' },
+                loginForm: { email: 'admin@locallift.com', password: '' },
                 toast: { show: false, message: '', type: 'info' },
+
+                // Admin AI Intelligence State
+                aiAssistantOpen: false,
+                aiLoading: false,
+                aiInput: '',
+                aiMessages: [
+                    { from: 'ai', text: 'Welcome Administrator! LocalLift Marketplace Intelligence is active. Ask for platform GMV, city-wise volume, financial commissions, or operational anomaly scans.' }
+                ],
+                aiPromptChips: [
+                    'Show marketplace KPIs & GMV',
+                    'City performance breakdown',
+                    'Financial commission summary',
+                    'Scan operational anomalies'
+                ],
 
                 stats: {
                     total_users: 0,
@@ -597,11 +1127,156 @@
                     approved_vendors: 0,
                     rejected_vendors: 0,
                     total_orders: 0,
-                    total_revenue: 0
+                    total_revenue: 0,
+                    total_products: 0,
+                    active_offers: 0
                 },
                 vendors: [],
                 orders: [],
                 users: [],
+                deliveryPartners: [],
+                fleetFilter: 'All',
+                financeSubTab: 'settlements',
+                finances: {
+                    metrics: {
+                        gmv: 0,
+                        successful_payments_count: 0,
+                        successful_payments_volume: 0,
+                        failed_payments_count: 0,
+                        failed_payments_volume: 0,
+                        refunds_count: 0,
+                        refunds_volume: 0,
+                        vendor_liabilities: 0,
+                        delivery_liabilities: 0,
+                        platform_commission: 0,
+                        vendor_commission_pct: 10.0
+                    },
+                    payments: [],
+                    settlements: [],
+                    refunds: [],
+                    delivery_payouts: [],
+                    audit_logs: []
+                },
+                refundForm: { group_id: '', child_order_id: '', amount: '', reason: '' },
+                commissionForm: { vendor_commission_pct: 10.0 },
+
+                authHeaders(extra = {}) {
+                    const h = { ...extra };
+                    if (this.adminUser && this.adminUser.token) {
+                        h['X-Admin-Token'] = this.adminUser.token;
+                        h['Authorization'] = 'Bearer ' + this.adminUser.token;
+                    }
+                    return h;
+                },
+
+                showToast(msg, type='info') {
+                    this.toast.message = msg;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3200);
+                },
+
+                formatGMV(val) {
+                    const num = Number(val) || 0;
+                    if (num >= 100000) {
+                        return '₹' + (num / 100000).toFixed(1) + 'L';
+                    }
+                    return '₹' + num.toLocaleString('en-IN');
+                },
+
+                formatItems(ord) {
+                    if (ord.items && Array.isArray(ord.items)) {
+                        return ord.items.map(i => `${i.product_name || i.name || 'Item'} × ${i.quantity || 1}`).join(', ');
+                    }
+                    return 'Local grocery & catalog order';
+                },
+
+                get pendingCount() {
+                    return this.vendors.filter(v => v.status === 'pending').length;
+                },
+
+                get approvedCount() {
+                    return this.vendors.filter(v => v.status === 'approved' || !v.status).length;
+                },
+
+                get suspendedCount() {
+                    return this.vendors.filter(v => v.status === 'suspended' || v.status === 'rejected').length;
+                },
+
+                get pendingFleetCount() {
+                    return this.deliveryPartners.filter(p => p.status === 'pending').length;
+                },
+
+                get approvedFleetCount() {
+                    return this.deliveryPartners.filter(p => p.status === 'approved').length;
+                },
+
+                get suspendedFleetCount() {
+                    return this.deliveryPartners.filter(p => p.status === 'suspended' || p.status === 'rejected').length;
+                },
+
+                get filteredFleet() {
+                    if (this.fleetFilter === 'Pending') return this.deliveryPartners.filter(p => p.status === 'pending');
+                    if (this.fleetFilter === 'Approved') return this.deliveryPartners.filter(p => p.status === 'approved');
+                    if (this.fleetFilter === 'Suspended') return this.deliveryPartners.filter(p => p.status === 'suspended' || p.status === 'rejected');
+                    return this.deliveryPartners;
+                },
+
+                get filteredVendors() {
+                    if (this.vendorFilter === 'Pending') {
+                        return this.vendors.filter(v => v.status === 'pending');
+                    }
+                    if (this.vendorFilter === 'Approved') {
+                        return this.vendors.filter(v => v.status === 'approved' || !v.status);
+                    }
+                    if (this.vendorFilter === 'Suspended') {
+                        return this.vendors.filter(v => v.status === 'suspended' || v.status === 'rejected');
+                    }
+                    return this.vendors;
+                },
+
+                clearAdminAiChat() {
+                    this.aiMessages = [
+                        { from: 'ai', text: 'Welcome Administrator! Ask for platform GMV, city-wise breakdown, commissions, or anomaly scans.' }
+                    ];
+                },
+
+                async sendAdminAiQuery(query) {
+                    const q = (query || '').trim();
+                    if (!q) return;
+                    this.aiMessages.push({ from: 'user', text: q });
+                    this.aiInput = '';
+                    this.aiLoading = true;
+                    setTimeout(() => {
+                        const stream = document.getElementById('adminAiStream');
+                        if (stream) stream.scrollTop = stream.scrollHeight;
+                    }, 50);
+
+                    try {
+                        const historyPayload = this.aiMessages.slice(-6).map(m => ({ from: m.from, text: m.text }));
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (this.adminToken) headers['Authorization'] = 'Bearer ' + this.adminToken;
+                        
+                        const res = await fetch('/api/ai/admin/chat', {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ message: q, history: historyPayload })
+                        });
+                        const data = await res.json();
+                        this.aiMessages.push({
+                            from: 'ai',
+                            text: data.reply || (data.error ? ('Error: ' + data.error) : 'Intelligence report generated.')
+                        });
+                    } catch(e) {
+                        this.aiMessages.push({ from: 'ai', text: 'Admin AI service temporarily unreachable.' });
+                    } finally {
+                        this.aiLoading = false;
+                        setTimeout(() => {
+                            const stream = document.getElementById('adminAiStream');
+                            if (stream) stream.scrollTop = stream.scrollHeight;
+                        }, 50);
+                    }
+                },
 
                 async init() {
                     const saved = localStorage.getItem('locallift_admin');
@@ -614,14 +1289,9 @@
                     }
                 },
 
-                showToast(msg, type='info') {
-                    this.toast.message = msg;
-                    this.toast.type = type;
-                    this.toast.show = true;
-                    setTimeout(() => { this.toast.show = false; }, 3200);
-                },
-
                 async login() {
+                    this.isLoading = true;
+                    this.loginError = '';
                     try {
                         const res = await fetch('/api/admin/login', {
                             method: 'POST',
@@ -633,44 +1303,151 @@
                             this.adminUser = data;
                             this.isLoggedIn = true;
                             localStorage.setItem('locallift_admin', JSON.stringify(data));
-                            this.showToast('Welcome Administrator! Control Center unlocked.', 'success');
+                            this.showToast('Super Admin Control Center authenticated! 🚀', 'success');
                             await this.refreshData();
                         } else {
-                            this.showToast(data.error || 'Invalid admin credentials', 'error');
+                            this.loginError = data.error || 'Invalid administrator credentials';
+                            this.showToast(this.loginError, 'error');
                         }
                     } catch(e) {
-                        this.showToast('Login server error. Try One-Click demo.', 'error');
+                        this.loginError = 'Server connection failed.';
+                        this.showToast(this.loginError, 'error');
+                    } finally {
+                        this.isLoading = false;
                     }
                 },
 
-                demoLogin() {
-                    this.adminUser = { name: 'Platform Administrator', email: 'admin@locallift.com', user_type: 'admin' };
-                    this.isLoggedIn = true;
-                    localStorage.setItem('locallift_admin', JSON.stringify(this.adminUser));
-                    this.showToast('Authenticated as Demo Administrator! 🛡️', 'success');
-                    this.refreshData();
+                async demoLogin() {
+                    this.loginForm.email = 'admin@locallift.com';
+                    this.loginForm.password = 'admin123';
+                    await this.login();
                 },
 
-                logout() {
+                async logout() {
+                    try {
+                        await fetch('/api/admin/logout', { method: 'POST', headers: this.authHeaders() });
+                    } catch(e){}
                     this.isLoggedIn = false;
+                    this.adminUser = { name: 'Platform Administrator', email: 'admin@locallift.com' };
                     localStorage.removeItem('locallift_admin');
-                    this.showToast('Admin session logged out safely', 'info');
+                    this.showToast('Super Admin session logged out safely', 'info');
+                },
+
+                
+                async fetchFinances() {
+                    try {
+                        const res = await fetch('/api/admin/finances', { headers: this.authHeaders() });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success) {
+                                this.finances = data;
+                                if (data.metrics && data.metrics.vendor_commission_pct) {
+                                    this.commissionForm.vendor_commission_pct = data.metrics.vendor_commission_pct;
+                                }
+                            }
+                        }
+                    } catch(e) {
+                        console.error('Admin finances error:', e);
+                    }
+                },
+
+                async settleVendor(settlementId) {
+                    try {
+                        const res = await fetch(`/api/admin/settlements/${settlementId}/settle`, {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showToast('Settlement marked as settled!', 'success');
+                            this.fetchFinances();
+                        } else {
+                            this.showToast(data.error || 'Failed to settle vendor', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Error settling vendor', 'error');
+                    }
+                },
+
+                async settleDelivery(ledgerId) {
+                    try {
+                        const res = await fetch(`/api/admin/delivery-payouts/${ledgerId}/settle`, {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showToast('Delivery payout marked as settled!', 'success');
+                            this.fetchFinances();
+                        } else {
+                            this.showToast(data.error || 'Failed to settle delivery payout', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Error settling delivery payout', 'error');
+                    }
+                },
+
+                async executeRefund() {
+                    try {
+                        const res = await fetch('/api/payments/refund', {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({
+                                group_id: Number(this.refundForm.group_id),
+                                child_order_id: this.refundForm.child_order_id ? Number(this.refundForm.child_order_id) : null,
+                                amount: Number(this.refundForm.amount),
+                                reason: this.refundForm.reason
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showToast(data.message || 'Refund executed successfully!', 'success');
+                            this.refundForm = { group_id: '', child_order_id: '', amount: '', reason: '' };
+                            this.fetchFinances();
+                        } else {
+                            this.showToast(data.error || 'Refund execution failed', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Error executing refund', 'error');
+                    }
+                },
+
+                async updateCommission() {
+                    try {
+                        const res = await fetch('/api/admin/settings/commission', {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({
+                                vendor_commission_pct: Number(this.commissionForm.vendor_commission_pct)
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showToast(data.message || 'Commission rate updated!', 'success');
+                            this.fetchFinances();
+                        } else {
+                            this.showToast(data.error || 'Failed to update commission', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Error updating commission', 'error');
+                    }
                 },
 
                 async refreshData() {
                     this.isRefreshing = true;
                     try {
                         const [sRes, vRes, oRes, uRes] = await Promise.all([
-                            fetch('/api/admin/stats'),
-                            fetch('/api/admin/vendors'),
-                            fetch('/api/admin/orders'),
-                            fetch('/api/admin/users')
+                            fetch('/api/admin/stats', { headers: this.authHeaders() }),
+                            fetch('/api/admin/vendors', { headers: this.authHeaders() }),
+                            fetch('/api/admin/orders', { headers: this.authHeaders() }),
+                            fetch('/api/admin/users', { headers: this.authHeaders() })
                         ]);
 
                         if (sRes.ok) this.stats = await sRes.json();
                         if (vRes.ok) this.vendors = await vRes.json();
                         if (oRes.ok) this.orders = await oRes.json();
                         if (uRes.ok) this.users = await uRes.json();
+                        await this.fetchDeliveryFleet();
                     } catch(e) {
                         console.error('Admin refresh error:', e);
                     } finally {
@@ -678,29 +1455,18 @@
                     }
                 },
 
-                get filteredVendors() {
-                    if (this.vendorFilter === 'pending') {
-                        return this.vendors.filter(v => v.status === 'pending');
-                    }
-                    if (this.vendorFilter === 'approved') {
-                        return this.vendors.filter(v => v.status === 'approved');
-                    }
-                    if (this.vendorFilter === 'rejected') {
-                        return this.vendors.filter(v => v.status === 'rejected');
-                    }
-                    return this.vendors;
-                },
-
                 async updateVendorStatus(vendorId, newStatus) {
                     try {
                         const res = await fetch(`/api/admin/vendors/${vendorId}/status`, {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
                             body: JSON.stringify({ status: newStatus })
                         });
                         const data = await res.json();
                         if (data.success) {
-                            this.showToast(`Vendor ${data.business_name || '#' + vendorId} is now ${newStatus.toUpperCase()}!`, 'success');
+                            const target = this.vendors.find(v => (v.vendor_id || v.id) === vendorId);
+                            if (target) target.status = newStatus;
+                            this.showToast(`Store #${vendorId} status changed to ${newStatus.toUpperCase()}!`, 'success');
                             await this.refreshData();
                         } else {
                             this.showToast('Failed to update vendor status', 'error');
@@ -711,19 +1477,125 @@
                 },
 
                 async deleteVendor(vendorId) {
-                    if (!confirm('Are you sure you want to remove this vendor and their products?')) return;
+                    if (!confirm(`Are you sure you want to permanently remove vendor #${vendorId} and all their catalog items?`)) return;
                     try {
-                        const res = await fetch(`/api/admin/vendors/${vendorId}`, { method: 'DELETE' });
+                        const res = await fetch(`/api/admin/vendors/${vendorId}`, { 
+                            method: 'DELETE',
+                            headers: this.authHeaders()
+                        });
                         if (res.ok) {
-                            this.showToast('Vendor removed successfully', 'info');
+                            this.showToast(`Vendor #${vendorId} removed successfully`, 'info');
                             await this.refreshData();
                         }
                     } catch(e) {
                         this.showToast('Error removing vendor', 'error');
                     }
+                },
+
+                async fetchDeliveryFleet() {
+                    try {
+                        const res = await fetch('/api/admin/delivery-partners', { headers: this.authHeaders() });
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.deliveryPartners = data.delivery_partners || [];
+                        }
+                    } catch(e) {
+                        console.error('Fetch fleet error:', e);
+                    }
+                },
+
+                async updatePartnerStatus(partnerId, newStatus) {
+                    try {
+                        const res = await fetch(`/api/admin/delivery-partners/${partnerId}/status`, {
+                            method: 'PATCH',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast(`Delivery partner #${partnerId} marked as ${newStatus.toUpperCase()}`, 'success');
+                            await this.fetchDeliveryFleet();
+                            await this.refreshData();
+                        } else {
+                            this.showToast(data.error || 'Failed to update partner status', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Connection error updating partner status', 'error');
+                    }
                 }
             };
         }
     </script>
+
+    <!-- Floating Admin Intelligence AI Widget -->
+    <div x-show="isLoggedIn" class="fixed bottom-6 right-6 z-50">
+        <!-- Floating Trigger Button -->
+        <button @click="aiAssistantOpen = !aiAssistantOpen" 
+                class="flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black text-xs sm:text-sm px-5 py-3 shadow-brand active:scale-95 transition">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Admin Intelligence AI</span>
+        </button>
+
+        <!-- Chat Drawer Card -->
+        <div x-show="aiAssistantOpen" 
+             x-transition
+             class="fixed bottom-20 right-6 w-[calc(100vw-3rem)] max-w-sm bg-white rounded-3xl border border-rose-100 shadow-2xl flex flex-col h-[32rem] overflow-hidden z-50">
+            <!-- Header -->
+            <div class="flex items-center gap-3 border-b border-rose-100 bg-[#fff1f3] px-4 py-3">
+                <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] w-8 h-8 shadow-sm">
+                    <svg viewBox="0 0 24 24" class="w-4 h-4 fill-white" aria-hidden="true">
+                        <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                    </svg>
+                </span>
+                <div class="flex-1">
+                    <p class="text-xs font-black text-slate-900">Marketplace Intelligence AI</p>
+                    <p class="text-[10px] text-slate-400 font-semibold">Gemini 2.5 Flash · Executive Insights</p>
+                </div>
+                <button @click="clearAdminAiChat()" title="Clear Chat" class="text-slate-400 hover:text-rose-600 p-1 text-xs">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button @click="aiAssistantOpen = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="flex-1 space-y-3 overflow-y-auto p-4 hide-scroll" id="adminAiStream">
+                <template x-for="(msg, idx) in aiMessages" :key="idx">
+                    <div :class="msg.from === 'user' ? 'flex justify-end' : ''">
+                        <div class="max-w-[85%] rounded-2xl px-3.5 py-2 text-xs font-semibold leading-relaxed whitespace-pre-line"
+                             :class="msg.from === 'user' ? 'bg-rose-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none'">
+                            <span x-text="msg.text"></span>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Typing Indicator -->
+                <div x-show="aiLoading" class="flex gap-1 bg-slate-100 px-3 py-2 rounded-2xl w-14">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+
+                <!-- Chips -->
+                <div x-show="aiMessages.length === 1" class="flex flex-wrap gap-1.5 pt-2">
+                    <template x-for="chip in aiPromptChips" :key="chip">
+                        <button @click="sendAdminAiQuery(chip)" class="rounded-full border border-rose-200 bg-rose-50/60 hover:bg-rose-100 px-3 py-1 text-[11px] font-bold text-rose-700 transition">
+                            <span x-text="chip"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <form @submit.prevent="sendAdminAiQuery(aiInput)" class="flex gap-2 border-t border-rose-100 p-3 bg-white">
+                <input type="text" x-model="aiInput" placeholder="Ask Admin Intelligence..." class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-rose-500 focus:outline-none">
+                <button type="submit" :disabled="aiLoading || !aiInput.trim()" class="rounded-xl bg-rose-600 px-3 py-2 text-white hover:bg-rose-700 disabled:opacity-50">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>

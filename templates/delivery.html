@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>LocalLift — Delivery Partner Cockpit</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#10b981">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#e11d48',
+                        'primary-hover': '#be123c',
+                        blush: '#fff1f3',
+                        ivory: '#fff9f8',
+                        navy: '#111827',
+                        fleet: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['"Fraunces"', 'Georgia', 'serif'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'brand': '0 8px 20px -8px rgba(225, 29, 72, 0.45)',
+                        'fleet': '0 8px 20px -8px rgba(16, 185, 129, 0.45)',
+                        'soft': '0 1px 3px rgba(17, 24, 39, 0.05), 0 10px 25px -10px rgba(17, 24, 39, 0.1)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts: Fraunces & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Icons: FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-display {
+            font-family: 'Fraunces', Georgia, serif;
+            letter-spacing: -0.025em;
+        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        [x-cloak] { display: none !important; }
+        .card-lift {
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px -5px rgba(17, 24, 39, 0.08), 0 4px 10px -4px rgba(17, 24, 39, 0.04);
+        }
+        @keyframes radar-pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.2; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-radar {
+            animation: radar-pulse 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen w-full bg-slate-50 text-slate-900 font-sans antialiased overflow-x-hidden selection:bg-emerald-500 selection:text-white" x-data="deliveryApp()" x-init="init()" x-cloak>
+
+    <!-- ── ROLE SWITCHER BANNER (UTILITY BAR) ────────────────── -->
+    <div class="bg-slate-950 text-white text-xs px-4 py-2 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-50">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-extrabold tracking-wide uppercase text-[10px] text-slate-400">Environment: Enterprise LocalLift v2.0</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-bag-shopping text-rose-400"></i> Marketplace
+            </a>
+            <span class="text-slate-700">|</span>
+            <a href="/vendor" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-store text-rose-400"></i> Vendor Portal
+            </a>
+            <span class="text-slate-700">|</span>
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-600/30 text-emerald-300 font-black flex items-center gap-1.5 border border-emerald-500/30">
+                <i class="fa-solid fa-motorcycle text-emerald-400"></i> Delivery Fleet
+            </span>
+            <span class="text-slate-700">|</span>
+            <a href="/admin" class="text-slate-300 hover:text-white transition font-medium flex items-center gap-1.5">
+                <i class="fa-solid fa-shield-halved text-rose-400"></i> Super Admin
+            </a>
+        </div>
+    </div>
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div x-show="toast.show" 
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 -translate-y-8"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-8"
+         class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-bold text-white backdrop-blur-md"
+         :class="toast.type === 'success' ? 'bg-emerald-600 shadow-emerald-500/20' : (toast.type === 'error' ? 'bg-rose-600 shadow-rose-500/20' : 'bg-slate-900 shadow-slate-900/20')">
+        <i class="fa-solid" :class="toast.type === 'success' ? 'fa-circle-check text-emerald-200' : (toast.type === 'error' ? 'fa-circle-exclamation text-rose-200' : 'fa-circle-info text-blue-200')"></i>
+        <span x-text="toast.message"></span>
+    </div>
+
+    <!-- ================= AUTHENTICATION / ONBOARDING SCREEN ================= -->
+    <div x-show="!isLoggedIn" class="min-h-[90vh] flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8 space-y-6">
+            
+            <!-- Branding Header -->
+            <div class="text-center space-y-2">
+                <div class="flex justify-center">
+                    <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-lg shadow-rose-500/25 w-14 h-14">
+                        <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white" aria-hidden="true">
+                            <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                        </svg>
+                    </span>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900 font-display">LocalLift Delivery Fleet</h1>
+                <p class="text-xs text-slate-500 font-medium">Pan-India Hyperlocal Rider & Dispatch Cockpit</p>
+            </div>
+
+            <!-- Login / Register Switcher -->
+            <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
+                <button @click="authMode = 'login'" 
+                        class="flex-1 py-2 rounded-xl transition"
+                        :class="authMode === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                    Rider Sign In
+                </button>
+                <button @click="authMode = 'register'" 
+                        class="flex-1 py-2 rounded-xl transition"
+                        :class="authMode === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'">
+                    New Partner Registration
+                </button>
+            </div>
+
+            <!-- 1-Click Demo Rider Login -->
+            <div x-show="authMode === 'login'" class="space-y-4">
+                <button @click="demoLogin" 
+                        class="w-full py-3 px-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-black text-xs flex items-center justify-center gap-2 hover:bg-emerald-100 transition shadow-sm">
+                    <i class="fa-solid fa-bolt text-emerald-600"></i>
+                    <span>1-Click Demo Rider: Rajesh Kumar (PB10-DL-5521)</span>
+                </button>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">or email / phone sign in</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+
+                <!-- Rider Login Form -->
+                <form @submit.prevent="login" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Email or Phone Number</label>
+                        <input type="text" x-model="loginForm.identifier" required placeholder="delivery@locallift.com or +919876543210"
+                               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Password</label>
+                        <input type="password" x-model="loginForm.password" required placeholder="••••••••"
+                               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+                    </div>
+                    <button type="submit" :disabled="isLoading"
+                            class="w-full py-3 bg-slate-950 hover:bg-slate-800 text-white font-extrabold rounded-2xl transition flex items-center justify-center gap-2 shadow-lg">
+                        <span x-show="!isLoading">Sign In to Cockpit</span>
+                        <span x-show="isLoading" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- New Partner Registration Form -->
+            <div x-show="authMode === 'register'" class="space-y-4">
+                <form @submit.prevent="register" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Full Legal Name</label>
+                        <input type="text" x-model="regForm.full_name" required placeholder="Amanpreet Singh"
+                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Email</label>
+                            <input type="email" x-model="regForm.email" required placeholder="rider@email.com"
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Phone (+91)</label>
+                            <input type="tel" x-model="regForm.phone" required placeholder="9812345678"
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Vehicle Type</label>
+                            <select x-model="regForm.vehicle_type" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                                <option value="Motorcycle">Motorcycle</option>
+                                <option value="Scooter">Scooter</option>
+                                <option value="Bicycle">Bicycle</option>
+                                <option value="Electric Vehicle">Electric Vehicle</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Number Plate</label>
+                            <input type="text" x-model="regForm.vehicle_number" required placeholder="PB10-EP-9988"
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 uppercase outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Driving License Number</label>
+                        <input type="text" x-model="regForm.driving_license_number" placeholder="DL-PB10-2023-88990"
+                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 uppercase outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Password</label>
+                        <input type="password" x-model="regForm.password" required placeholder="••••••••"
+                               class="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                    </div>
+                    <button type="submit" :disabled="isLoading"
+                            class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl transition shadow-fleet">
+                        <span x-show="!isLoading">Submit Partner Application</span>
+                        <span x-show="isLoading" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= AUTHENTICATED PARTNER COCKPIT ================= -->
+    <div x-show="isLoggedIn" class="min-h-screen flex flex-col">
+        
+        <!-- Top App Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+                
+                <!-- Logo & Rider identity -->
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] shadow-lg shadow-rose-500/25 w-10 h-10">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white" aria-hidden="true">
+                            <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                        </svg>
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-base sm:text-lg font-black text-slate-900 font-display" x-text="partner.full_name || 'Rider'"></span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 flex items-center gap-1">
+                                <i class="fa-solid fa-star text-amber-500"></i>
+                                <span x-text="partner.rating ? Number(partner.rating).toFixed(1) : '5.0'"></span>
+                            </span>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-motorcycle text-indigo-500"></i>
+                            <span x-text="partner.vehicle_number || 'PB10-DL-5521'"></span> • <span x-text="partner.city_name || 'Ludhiana'"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Shift Status & Global Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    
+                    <!-- Online / Offline Toggle Button -->
+                    <button @click="toggleAvailability"
+                            :disabled="partner.status !== 'approved'"
+                            class="px-3.5 py-1.5 rounded-2xl text-xs font-black transition flex items-center gap-2 shadow-sm border"
+                            :class="partner.is_online ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'">
+                        <span class="w-2.5 h-2.5 rounded-full" :class="partner.is_online ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'"></span>
+                        <span x-text="partner.is_online ? 'ON SHIFT (ONLINE)' : 'OFF SHIFT (OFFLINE)'"></span>
+                    </button>
+
+                    <!-- Refresh Button -->
+                    <button @click="refreshCockpit" 
+                            class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition active:scale-95"
+                            :class="{'animate-spin text-emerald-600': isRefreshing}"
+                            title="Refresh radar and active trips">
+                        <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                    </button>
+
+                    <!-- Sign Out -->
+                    <button @click="logout" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Switcher Navigation -->
+            <div class="flex border-t border-slate-200 bg-slate-50 px-4 py-2 justify-around text-xs font-bold">
+                <button @click="currentTab = 'trip'" 
+                        class="py-1.5 px-3 rounded-xl transition flex items-center gap-1.5"
+                        :class="currentTab === 'trip' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                    <i class="fa-solid fa-route"></i>
+                    <span>Active Trip</span>
+                    <span x-show="activeOrder" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                </button>
+                <button @click="currentTab = 'radar'" 
+                        class="py-1.5 px-3 rounded-xl transition flex items-center gap-1.5"
+                        :class="currentTab === 'radar' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                    <i class="fa-solid fa-satellite-dish text-emerald-500"></i>
+                    <span>Radar Queue</span>
+                    <span x-show="availableOrders.length > 0" class="px-1.5 py-0.2 rounded-full text-[9px] bg-rose-500 text-white font-black" x-text="availableOrders.length"></span>
+                </button>
+                <button @click="currentTab = 'earnings'" 
+                        class="py-1.5 px-3 rounded-xl transition flex items-center gap-1.5"
+                        :class="currentTab === 'earnings' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                    <i class="fa-solid fa-wallet text-amber-500"></i>
+                    <span>Earnings & Ledger</span>
+                </button>
+                <button @click="currentTab = 'profile'" 
+                        class="py-1.5 px-3 rounded-xl transition flex items-center gap-1.5"
+                        :class="currentTab === 'profile' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+                    <i class="fa-solid fa-id-badge text-blue-500"></i>
+                    <span>Vehicle & Zone</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Body -->
+        <main class="mx-auto max-w-7xl w-full px-4 sm:px-6 py-6 flex-1 space-y-6">
+
+            <!-- PENDING APPROVAL BANNER (IF APPLICABLE) -->
+            <div x-show="partner.status === 'pending'" class="rounded-3xl border-2 border-amber-300 bg-amber-50 p-6 sm:p-8 text-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-amber-100 border-4 border-white mx-auto flex items-center justify-center text-amber-600 text-2xl shadow-md">
+                    <i class="fa-solid fa-clock-rotate-left animate-spin"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-900 font-display">Rider Application Under Verification</h2>
+                <p class="text-xs text-slate-600 max-w-lg mx-auto">
+                    Welcome to the LocalLift Fleet, <strong x-text="partner.full_name"></strong>! Your driver profile and vehicle details (<strong x-text="partner.vehicle_number"></strong>) have been submitted to Central Administration for verification. Approval typically takes under 2 hours.
+                </p>
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-2xl border border-amber-200 text-xs font-bold text-amber-800">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Status: Pending Super Admin Approval
+                </div>
+            </div>
+
+            <!-- SUSPENDED ALERT (IF APPLICABLE) -->
+            <div x-show="partner.status === 'suspended' || partner.status === 'rejected'" class="rounded-3xl border-2 border-rose-300 bg-rose-50 p-6 sm:p-8 text-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-rose-100 border-4 border-white mx-auto flex items-center justify-center text-rose-600 text-2xl shadow-md">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-900 font-display">Account Access Suspended</h2>
+                <p class="text-xs text-slate-600 max-w-lg mx-auto">
+                    Your delivery partner credentials are currently inactive. Please contact LocalLift fleet operations at <span class="font-bold text-rose-700">support@locallift.com</span> for re-activation.
+                </p>
+            </div>
+
+            <!-- DASHBOARD BODY FOR APPROVED RIDERS -->
+            <div x-show="partner.status === 'approved'" class="space-y-6">
+                
+                <!-- Quick Metric KPI Cards (4 Cards) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-slate-500">Today's Earnings</span>
+                            <i class="fa-solid fa-indian-rupee-sign text-emerald-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-emerald-600">₹<span x-text="earnings.today_earnings || '0.00'"></span></p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Credited exactly-once</p>
+                    </div>
+
+                    <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-slate-500">Total Trips</span>
+                            <i class="fa-solid fa-circle-check text-blue-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-slate-900" x-text="partner.total_trips || '0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Delivered safely</p>
+                    </div>
+
+                    <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-slate-500">Customer Rating</span>
+                            <i class="fa-solid fa-star text-amber-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-2xl font-black text-amber-500" x-text="partner.rating ? Number(partner.rating).toFixed(1) : '5.0'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">5-star verified service</p>
+                    </div>
+
+                    <div class="card-lift rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-400 mb-1">
+                            <span class="text-xs font-bold text-slate-500">Zone Hub</span>
+                            <i class="fa-solid fa-location-dot text-rose-500 text-xs"></i>
+                        </div>
+                        <p class="font-display text-xl font-black text-slate-900 truncate" x-text="partner.zone_name || 'Central Hub'"></p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5" x-text="partner.city_name || 'Ludhiana'"></p>
+                    </div>
+                </div>
+
+                <!-- ── TAB 1: ACTIVE DELIVERY COCKPIT ───────────────────────── -->
+                <div x-show="currentTab === 'trip'" class="space-y-4">
+                    
+                    <!-- When Active Order Exists -->
+                    <template x-if="activeOrder">
+                        <div class="rounded-3xl border border-slate-200 bg-white shadow-soft overflow-hidden">
+                            
+                            <!-- Header Bar -->
+                            <div class="p-5 sm:p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                            Active Live Dispatch
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black"
+                                              :class="gpsStatus === 'watching' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40' : (gpsStatus === 'denied' ? 'bg-rose-500/30 text-rose-300 border border-rose-500/40' : 'bg-slate-700/50 text-slate-300')">
+                                            <i class="fa-solid fa-satellite-dish" :class="gpsStatus === 'watching' ? 'animate-pulse text-emerald-400' : (gpsStatus === 'denied' ? 'text-rose-400' : 'text-slate-400')"></i>
+                                            <span x-show="gpsStatus === 'watching'">LIVE GPS TRANSMITTING (±<span x-text="Math.round(gpsAccuracy || 10)"></span>m)</span>
+                                            <span x-show="gpsStatus === 'denied'">GPS PERMISSION DENIED</span>
+                                            <span x-show="gpsStatus === 'idle'">CONNECTING GPS SATELLITES...</span>
+                                            <span x-show="gpsStatus === 'error'">GPS SIGNAL RETRYING...</span>
+                                        </span>
+                                    </div>
+                                    <h2 class="text-xl sm:text-2xl font-black font-display mt-1">
+                                        Order #<span x-text="activeOrder.order_id"></span>
+                                    </h2>
+                                    <p class="text-xs text-slate-300">
+                                        Merchant: <strong class="text-white" x-text="activeOrder.business_name"></strong> • <span x-text="activeOrder.vendor_category"></span>
+                                    </p>
+                                </div>
+
+                                <div class="text-right">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Payout</p>
+                                    <p class="text-2xl sm:text-3xl font-black text-emerald-400 font-display">₹<span x-text="activeOrder.partner_payout || '30.00'"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Stepper Progress Bar -->
+                            <div class="p-4 sm:p-6 border-b border-slate-200 bg-slate-50">
+                                <div class="grid grid-cols-3 text-center text-xs font-extrabold relative">
+                                    <!-- Step 1 -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 text-xs font-black shadow-sm"
+                                             :class="activeOrder.delivery_status === 'assigned' ? 'bg-amber-500 text-white ring-4 ring-amber-100' : 'bg-emerald-600 text-white'">
+                                            <i class="fa-solid fa-store" x-show="activeOrder.delivery_status === 'assigned'"></i>
+                                            <i class="fa-solid fa-check" x-show="activeOrder.delivery_status !== 'assigned'"></i>
+                                        </div>
+                                        <span :class="activeOrder.delivery_status === 'assigned' ? 'text-amber-800 font-black' : 'text-slate-600'">1. Reach Store</span>
+                                    </div>
+
+                                    <!-- Step 2 -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 text-xs font-black shadow-sm"
+                                             :class="activeOrder.delivery_status === 'arrived_at_store' ? 'bg-amber-500 text-white ring-4 ring-amber-100' : (activeOrder.delivery_status === 'out_for_delivery' || activeOrder.delivery_status === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500')">
+                                            <i class="fa-solid fa-key" x-show="activeOrder.delivery_status === 'arrived_at_store'"></i>
+                                            <i class="fa-solid fa-check" x-show="activeOrder.delivery_status === 'out_for_delivery' || activeOrder.delivery_status === 'delivered'"></i>
+                                            <span x-show="activeOrder.delivery_status === 'assigned'">2</span>
+                                        </div>
+                                        <span :class="activeOrder.delivery_status === 'arrived_at_store' ? 'text-amber-800 font-black' : 'text-slate-600'">2. Pickup OTP</span>
+                                    </div>
+
+                                    <!-- Step 3 -->
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center mb-1 text-xs font-black shadow-sm"
+                                             :class="activeOrder.delivery_status === 'out_for_delivery' ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' : 'bg-slate-200 text-slate-500'">
+                                            <i class="fa-solid fa-motorcycle" x-show="activeOrder.delivery_status === 'out_for_delivery'"></i>
+                                            <span x-show="activeOrder.delivery_status !== 'out_for_delivery'">3</span>
+                                        </div>
+                                        <span :class="activeOrder.delivery_status === 'out_for_delivery' ? 'text-emerald-800 font-black' : 'text-slate-600'">3. Drop & OTP</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Stage Actions -->
+                            <div class="p-5 sm:p-6 space-y-6">
+
+                                <!-- PHASE 1: NAVIGATING TO STORE -->
+                                <div x-show="activeOrder.delivery_status === 'assigned'" class="space-y-4">
+                                    <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50 space-y-2">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="text-[10px] font-black text-rose-600 uppercase tracking-wider">Pickup Location</p>
+                                                <h3 class="font-extrabold text-base text-slate-900" x-text="activeOrder.business_name"></h3>
+                                                <p class="text-xs text-slate-500 mt-0.5" x-text="activeOrder.vendor_address || 'Store address'"></p>
+                                            </div>
+                                            <a :href="'tel:' + activeOrder.vendor_phone" class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-emerald-600 shadow-sm">
+                                                <i class="fa-solid fa-phone text-sm"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <button @click="markArrivedStore" :disabled="isLoading"
+                                            class="w-full py-4 bg-slate-950 hover:bg-slate-800 text-white font-black text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-location-crosshairs text-emerald-400"></i>
+                                        <span x-show="!isLoading">I Have Arrived at the Store</span>
+                                        <span x-show="isLoading" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                                    </button>
+                                </div>
+
+                                <!-- PHASE 2: ARRIVED AT STORE - ENTER PICKUP OTP -->
+                                <div x-show="activeOrder.delivery_status === 'arrived_at_store'" class="space-y-4">
+                                    <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-center space-y-2">
+                                        <p class="text-xs font-bold text-amber-900">
+                                            Ask the merchant for the <strong>4-digit Pickup OTP</strong> before taking the package.
+                                        </p>
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-amber-300 text-[10px] font-black text-amber-800">
+                                            <i class="fa-solid fa-circle-info text-amber-500"></i>
+                                            <span>Demo Pickup OTP: <strong>1234</strong></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2 max-w-xs mx-auto">
+                                        <label class="block text-center font-bold text-xs text-slate-700">Enter Pickup OTP</label>
+                                        <input type="text" maxlength="4" x-model="otpInput.pickup" placeholder="••••"
+                                               class="w-full py-3 text-center tracking-[0.5em] text-2xl font-black font-mono rounded-2xl border-2 border-slate-200 focus:border-amber-500 outline-none">
+                                    </div>
+
+                                    <button @click="verifyPickupOTP" :disabled="isLoading || otpInput.pickup.length < 4"
+                                            class="w-full py-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-box-open"></i>
+                                        <span x-show="!isLoading">Verify Pickup & Start Delivery</span>
+                                        <span x-show="isLoading" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                                    </button>
+                                </div>
+
+                                <!-- PHASE 3: OUT FOR DELIVERY - ENTER DELIVERY OTP AT HANDOVER -->
+                                <div x-show="activeOrder.delivery_status === 'out_for_delivery'" class="space-y-4">
+                                    <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50 space-y-2">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Customer Dropoff Address</p>
+                                                <h3 class="font-extrabold text-base text-slate-900" x-text="activeOrder.customer_name"></h3>
+                                                <p class="text-xs text-slate-500 mt-0.5" x-text="activeOrder.customer_address || 'Customer destination'"></p>
+                                            </div>
+                                            <a :href="'tel:' + activeOrder.customer_phone" class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-emerald-600 shadow-sm">
+                                                <i class="fa-solid fa-phone text-sm"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-center space-y-2">
+                                        <p class="text-xs font-bold text-emerald-900">
+                                            Hand the package to the customer and collect the <strong>4-digit Delivery OTP</strong>.
+                                        </p>
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-emerald-300 text-[10px] font-black text-emerald-800">
+                                            <i class="fa-solid fa-circle-info text-emerald-500"></i>
+                                            <span>Demo Delivery OTP: <strong>5678</strong></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2 max-w-xs mx-auto">
+                                        <label class="block text-center font-bold text-xs text-slate-700">Enter Customer Delivery OTP</label>
+                                        <input type="text" maxlength="4" x-model="otpInput.delivery" placeholder="••••"
+                                               class="w-full py-3 text-center tracking-[0.5em] text-2xl font-black font-mono rounded-2xl border-2 border-slate-200 focus:border-emerald-500 outline-none">
+                                    </div>
+
+                                    <button @click="verifyDeliveryOTP" :disabled="isLoading || otpInput.delivery.length < 4"
+                                            class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-fleet transition flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-hand-holding-heart"></i>
+                                        <span x-show="!isLoading">Confirm Handover & Settle Payout</span>
+                                        <span x-show="isLoading" class="animate-spin"><i class="fa-solid fa-circle-notch"></i></span>
+                                    </button>
+                                </div>
+
+                                <!-- Items Manifest -->
+                                <div class="border-t border-slate-200 pt-4" x-show="activeOrder.items && activeOrder.items.length">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Package Contents</p>
+                                    <div class="divide-y divide-slate-100 text-xs">
+                                        <template x-for="item in activeOrder.items" :key="item.order_item_id">
+                                            <div class="py-2 flex items-center justify-between">
+                                                <span class="font-bold text-slate-800" x-text="item.product_name"></span>
+                                                <span class="text-slate-500" x-text="'× ' + item.quantity"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- When No Active Order Exists -->
+                    <template x-if="!activeOrder">
+                        <div class="rounded-3xl border-2 border-dashed border-slate-200 bg-white p-8 sm:p-12 text-center space-y-4">
+                            <div class="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 mx-auto flex items-center justify-center text-slate-400 text-2xl">
+                                <i class="fa-solid fa-motorcycle"></i>
+                            </div>
+                            <h3 class="text-lg font-black text-slate-800 font-display">No Active Delivery in Progress</h3>
+                            <p class="text-xs text-slate-500 max-w-md mx-auto">
+                                You are ready for your next trip! Switch to the <strong>Radar Queue</strong> to review and accept incoming delivery requests in your zone.
+                            </p>
+                            <button @click="currentTab = 'radar'" 
+                                    class="py-2.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-fleet transition inline-flex items-center gap-2">
+                                <i class="fa-solid fa-satellite-dish"></i>
+                                <span>Open Radar Queue (<span x-text="availableOrders.length"></span> Available)</span>
+                            </button>
+                        </div>
+                    </template>
+
+                </div>
+
+                <!-- ── TAB 2: PROXIMITY RADAR QUEUE ────────────────────────── -->
+                <div x-show="currentTab === 'radar'" class="space-y-4">
+                    
+                    <!-- Radar Status Header -->
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="relative w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                                <i class="fa-solid fa-satellite-dish animate-pulse text-base"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-slate-900">Proximity Radar Stream</h3>
+                                <p class="text-[11px] text-slate-400">
+                                    Scanning orders within <strong class="text-slate-700" x-text="partner.zone_name || 'Ludhiana Central'"></strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-800"
+                                  x-text="availableOrders.length + ' Available Pickups'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Offline Warning if partner is offline -->
+                    <div x-show="!partner.is_online" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center space-y-2">
+                        <p class="text-xs font-bold text-amber-900">You are currently OFFLINE. Toggle your shift to Online to claim incoming delivery requests.</p>
+                        <button @click="toggleAvailability" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl transition">
+                            Go Online Now
+                        </button>
+                    </div>
+
+                    <!-- Available Orders Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" x-show="partner.is_online">
+                        
+                        <!-- Empty State -->
+                        <div x-show="availableOrders.length === 0" class="col-span-full py-12 text-center rounded-3xl border-2 border-dashed border-slate-200 bg-white space-y-3">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center text-lg animate-radar">
+                                <i class="fa-solid fa-radar"></i>
+                            </div>
+                            <p class="text-xs font-bold text-slate-700">All local delivery requests are currently assigned!</p>
+                            <p class="text-[11px] text-slate-400 max-w-sm mx-auto">Keep this window open. New store orders appear dynamically as customers place orders in your zone.</p>
+                        </div>
+
+                        <!-- Order Card -->
+                        <template x-for="ord in availableOrders" :key="ord.order_id">
+                            <div class="card-lift rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col justify-between space-y-4">
+                                <div class="space-y-3">
+                                    
+                                    <!-- Store and payout -->
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div>
+                                            <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600" x-text="ord.vendor_category || 'Retail'"></span>
+                                            <h4 class="font-black text-base text-slate-900 mt-1 font-display" x-text="ord.business_name"></h4>
+                                            <p class="text-[11px] text-slate-500 line-clamp-1" x-text="ord.vendor_address"></p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase">Payout</p>
+                                            <p class="text-xl font-black text-emerald-600 font-display">₹<span x-text="ord.partner_payout || '30.00'"></span></p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Route points -->
+                                    <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                                        <div class="flex items-center gap-2 text-slate-700">
+                                            <i class="fa-solid fa-circle-dot text-rose-500 text-[10px]"></i>
+                                            <span class="truncate" x-text="'Pickup: ' + ord.business_name"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-slate-700">
+                                            <i class="fa-solid fa-location-dot text-emerald-500 text-[10px]"></i>
+                                            <span class="truncate" x-text="'Drop: ' + (ord.customer_address || 'Customer Destination')"></span>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- Action Button -->
+                                <button @click="acceptOrder(ord.order_id)" :disabled="isLoading || activeOrder !== null"
+                                        class="w-full py-3 bg-slate-950 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-2xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>Accept Delivery Request</span>
+                                </button>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+
+                <!-- ── TAB 3: EARNINGS & FINANCIAL LEDGER ──────────────────── -->
+                <div x-show="currentTab === 'earnings'" class="space-y-4">
+                    <div class="rounded-3xl border border-slate-200 bg-white shadow-soft overflow-hidden">
+                        
+                        <!-- Stage 11: Financial Summary & Date Filters -->
+                        <div class="p-5 sm:p-6 border-b border-slate-200 space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h3 class="font-extrabold text-base sm:text-lg text-slate-900 font-display">Delivery Earnings & Payout Ledger</h3>
+                                    <p class="text-xs text-slate-400">Auditable exactly-once compensation with admin bank settlement tracking</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                                        <span class="text-slate-400 font-bold">From:</span>
+                                        <input type="date" x-model="filterFromDate" @change="fetchDeliveryFinances()" class="bg-transparent text-slate-700 font-bold focus:outline-none">
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                                        <span class="text-slate-400 font-bold">To:</span>
+                                        <input type="date" x-model="filterToDate" @change="fetchDeliveryFinances()" class="bg-transparent text-slate-700 font-bold focus:outline-none">
+                                    </div>
+                                    <button @click="filterFromDate = ''; filterToDate = ''; fetchDeliveryFinances()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600">
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Financial Summary Badges -->
+                            <div class="grid grid-cols-3 gap-3 pt-2">
+                                <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Lifetime Earned</p>
+                                    <p class="text-lg font-black text-slate-900">₹<span x-text="earnings.completed_earnings || earnings.total_earnings || '0.00'"></span></p>
+                                </div>
+                                <div class="bg-amber-50 rounded-2xl p-3 border border-amber-100">
+                                    <p class="text-[10px] font-bold text-amber-600 uppercase">Pending Payout</p>
+                                    <p class="text-lg font-black text-amber-700">₹<span x-text="earnings.pending_payouts || '0.00'"></span></p>
+                                </div>
+                                <div class="bg-emerald-50 rounded-2xl p-3 border border-emerald-100">
+                                    <p class="text-[10px] font-bold text-emerald-600 uppercase">Settled to Bank</p>
+                                    <p class="text-lg font-black text-emerald-700">₹<span x-text="earnings.settled_payouts || '0.00'"></span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ledger Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-50 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-5 py-3">Order Ref</th>
+                                        <th class="px-4 py-3">Store</th>
+                                        <th class="px-4 py-3">Date & Time</th>
+                                        <th class="px-4 py-3">Payout</th>
+                                        <th class="px-4 py-3">Status</th>
+                                        <th class="px-5 py-3 text-right">Audit Key</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                                    <tr x-show="!earnings.ledger || earnings.ledger.length === 0">
+                                        <td colspan="6" class="py-12 text-center text-slate-400 text-xs">
+                                            No completed trips in financial ledger yet.
+                                        </td>
+                                    </tr>
+
+                                    <template x-for="entry in earnings.ledger" :key="entry.ledger_id">
+                                        <tr class="hover:bg-slate-50/80 transition">
+                                            <td class="px-5 py-3 font-black text-slate-900" x-text="'#' + entry.order_id"></td>
+                                            <td class="px-4 py-3 font-bold text-slate-800" x-text="entry.business_name || 'Local Merchant'"></td>
+                                            <td class="px-4 py-3 text-slate-400" x-text="entry.created_at"></td>
+                                            <td class="px-4 py-3 font-black text-emerald-600">₹<span x-text="entry.total_amount"></span></td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border"
+                                                      :class="entry.is_settled == 1 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'"
+                                                      x-text="entry.is_settled == 1 ? 'SETTLED' : 'PENDING PAYOUT'">
+                                                </span>
+                                            </td>
+                                            <td class="px-5 py-3 text-right font-mono text-[9px] text-slate-400 truncate max-w-xs" x-text="entry.idempotency_key"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ── TAB 4: VEHICLE & ZONE SETTINGS ──────────────────────── -->
+                <div x-show="currentTab === 'profile'" class="space-y-4">
+                    <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-soft max-w-2xl space-y-6">
+                        <div>
+                            <h3 class="font-extrabold text-lg text-slate-900 font-display">Vehicle & Fleet Preferences</h3>
+                            <p class="text-xs text-slate-400">Keep your operating zone and equipment details updated</p>
+                        </div>
+
+                        <form @submit.prevent="updateProfile" class="space-y-4 text-xs">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Vehicle Type</label>
+                                    <select x-model="partner.vehicle_type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none">
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Scooter">Scooter</option>
+                                        <option value="Bicycle">Bicycle</option>
+                                        <option value="Electric Vehicle">Electric Vehicle</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Plate Number</label>
+                                    <input type="text" x-model="partner.vehicle_number" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 uppercase outline-none">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Driving License Number</label>
+                                <input type="text" x-model="partner.driving_license_number" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 uppercase outline-none">
+                            </div>
+
+                            <button type="submit" :disabled="isLoading"
+                                    class="py-3 px-6 bg-slate-950 hover:bg-slate-800 text-white font-extrabold rounded-2xl transition shadow-sm">
+                                Save Profile Preferences
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= JAVASCRIPT APP LOGIC ================= -->
+    <script>
+        function deliveryApp() {
+            return {
+                isLoggedIn: false,
+                authMode: 'login',
+                currentTab: 'radar',
+                isLoading: false,
+                isRefreshing: false,
+
+                loginForm: { identifier: 'delivery@locallift.com', password: 'password123' },
+                regForm: {
+                    full_name: '', email: '', phone: '', password: '',
+                    vehicle_type: 'Motorcycle', vehicle_number: '', driving_license_number: ''
+                },
+                otpInput: { pickup: '', delivery: '' },
+                toast: { show: false, message: '', type: 'info' },
+
+                // Delivery AI Assistant State
+                aiAssistantOpen: false,
+                aiLoading: false,
+                aiInput: '',
+                aiMessages: [
+                    { from: 'ai', text: 'Namaste Partner Ji! I am your LocalLift Delivery Assistant. Ask me about active order details, pickup locations, today\'s earnings, and trip payouts.' }
+                ],
+                aiPromptChips: [
+                    'Show today\'s earnings summary',
+                    'Where is my active pickup?',
+                    'Check payout status'
+                ],
+
+                partner: {
+                    full_name: 'Rajesh Kumar',
+                    phone: '+919876543210',
+                    vehicle_number: 'PB10-DL-5521',
+                    vehicle_type: 'Motorcycle',
+                    status: 'approved',
+                    is_online: 1,
+                    rating: 4.9,
+                    total_trips: 48,
+                    city_name: 'Ludhiana',
+                    zone_name: 'Model Town'
+                },
+                activeOrder: null,
+                availableOrders: [],
+                earnings: { today_earnings: 0, total_earnings: 0, completed_earnings: 0, pending_payouts: 0, settled_payouts: 0, ledger: [] },
+                filterFromDate: '',
+                filterToDate: '',
+                gpsWatchId: null,
+                gpsStatus: 'idle',
+                gpsAccuracy: null,
+                lastGpsSentTime: 0,
+
+                authHeaders(extra = {}) {
+                    const h = { ...extra };
+                    const token = localStorage.getItem('locallift_delivery_token');
+                    if (token) {
+                        h['X-Delivery-Token'] = token;
+                        h['Authorization'] = 'Bearer ' + token;
+                    }
+                    return h;
+                },
+
+                showToast(msg, type='info') {
+                    this.toast.message = msg;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    setTimeout(() => { this.toast.show = false; }, 3200);
+                },
+
+                clearDeliveryAiChat() {
+                    this.aiMessages = [
+                        { from: 'ai', text: 'Namaste Partner Ji! Ask me about active orders, pickup directions, earnings, and trip history.' }
+                    ];
+                },
+
+                async sendDeliveryAiQuery(query) {
+                    const q = (query || '').trim();
+                    if (!q) return;
+                    this.aiMessages.push({ from: 'user', text: q });
+                    this.aiInput = '';
+                    this.aiLoading = true;
+                    setTimeout(() => {
+                        const stream = document.getElementById('deliveryAiStream');
+                        if (stream) stream.scrollTop = stream.scrollHeight;
+                    }, 50);
+
+                    try {
+                        const historyPayload = this.aiMessages.slice(-6).map(m => ({ from: m.from, text: m.text }));
+                        const res = await fetch('/api/ai/delivery/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: q, history: historyPayload })
+                        });
+                        const data = await res.json();
+                        this.aiMessages.push({
+                            from: 'ai',
+                            text: data.reply || (data.error ? ('Error: ' + data.error) : 'Details retrieved.')
+                        });
+                    } catch(e) {
+                        this.aiMessages.push({ from: 'ai', text: 'Delivery AI service temporarily unreachable.' });
+                    } finally {
+                        this.aiLoading = false;
+                        setTimeout(() => {
+                            const stream = document.getElementById('deliveryAiStream');
+                            if (stream) stream.scrollTop = stream.scrollHeight;
+                        }, 50);
+                    }
+                },
+
+                async init() {
+                    const saved = localStorage.getItem('locallift_delivery_partner');
+                    const token = localStorage.getItem('locallift_delivery_token');
+                    if (saved && token) {
+                        try {
+                            this.partner = JSON.parse(saved);
+                            this.isLoggedIn = true;
+                            await this.refreshCockpit();
+                        } catch(e) {}
+                    }
+                },
+
+                async demoLogin() {
+                    this.loginForm.identifier = 'delivery@locallift.com';
+                    this.loginForm.password = 'password123';
+                    await this.login();
+                },
+
+                async login() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('/api/delivery/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.loginForm)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.partner = data.partner;
+                            this.isLoggedIn = true;
+                            localStorage.setItem('locallift_delivery_token', data.token);
+                            localStorage.setItem('locallift_delivery_partner', JSON.stringify(data.partner));
+                            this.showToast('Delivery cockpit authenticated! 🚀', 'success');
+                            await this.refreshCockpit();
+                        } else {
+                            this.showToast(data.error || 'Authentication failed', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Server connection failed', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async register() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('/api/delivery/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.regForm)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('Application submitted! Logging you in...', 'success');
+                            this.loginForm.identifier = this.regForm.email;
+                            this.loginForm.password = this.regForm.password;
+                            await this.login();
+                        } else {
+                            this.showToast(data.error || 'Registration failed', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Server error during registration', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async logout() {
+                    this.stopGpsTracking();
+                    try {
+                        await fetch('/api/delivery/logout', { method: 'POST', headers: this.authHeaders() });
+                    } catch(e) {}
+                    this.isLoggedIn = false;
+                    localStorage.removeItem('locallift_delivery_token');
+                    localStorage.removeItem('locallift_delivery_partner');
+                    this.showToast('Shift closed safely', 'info');
+                },
+
+                startGpsTracking() {
+                    if (!navigator.geolocation) {
+                        this.showToast('Geolocation is not supported by your browser', 'error');
+                        return;
+                    }
+                    if (this.gpsWatchId !== null) return;
+                    this.gpsStatus = 'idle';
+                    this.gpsWatchId = navigator.geolocation.watchPosition(
+                        this.onGpsSuccess.bind(this),
+                        this.onGpsError.bind(this),
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+                    );
+                },
+
+                stopGpsTracking() {
+                    if (this.gpsWatchId !== null) {
+                        navigator.geolocation.clearWatch(this.gpsWatchId);
+                        this.gpsWatchId = null;
+                    }
+                    this.gpsStatus = 'idle';
+                    this.gpsAccuracy = null;
+                },
+
+                onGpsSuccess(pos) {
+                    this.gpsStatus = 'watching';
+                    this.gpsAccuracy = pos.coords.accuracy;
+                    const now = Date.now();
+                    if (now - this.lastGpsSentTime < 4000) return;
+                    this.lastGpsSentTime = now;
+
+                    fetch('/api/delivery/location', {
+                        method: 'PATCH',
+                        headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                        body: JSON.stringify({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude,
+                            accuracy: pos.coords.accuracy,
+                            speed: pos.coords.speed,
+                            heading: pos.coords.heading
+                        })
+                    }).catch(e => console.error('GPS telemetry sync error:', e));
+                },
+
+                onGpsError(err) {
+                    if (err.code === 1) {
+                        this.gpsStatus = 'denied';
+                        this.showToast('Location permission denied. Please allow GPS access.', 'error');
+                    } else {
+                        this.gpsStatus = 'error';
+                    }
+                },
+
+                
+                async fetchDeliveryFinances() {
+                    try {
+                        let url = '/api/delivery/finances';
+                        const params = [];
+                        if (this.filterFromDate) params.push('from_date=' + this.filterFromDate);
+                        if (this.filterToDate) params.push('to_date=' + this.filterToDate);
+                        if (params.length > 0) url += '?' + params.join('&');
+
+                        const res = await fetch(url, { headers: this.authHeaders() });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success) {
+                                this.earnings.completed_earnings = data.completed_earnings;
+                                this.earnings.pending_payouts = data.pending_payouts;
+                                this.earnings.settled_payouts = data.settled_payouts;
+                                this.earnings.total_earnings = data.completed_earnings;
+                                this.earnings.ledger = data.ledger;
+                            }
+                        }
+                    } catch(e) {
+                        console.error('Delivery finances error:', e);
+                    }
+                },
+
+                async refreshCockpit() {
+                    this.isRefreshing = true;
+                    try {
+                        const [pRes, aRes, oRes, eRes] = await Promise.all([
+                            fetch('/api/delivery/profile', { headers: this.authHeaders() }),
+                            fetch('/api/delivery/active-order', { headers: this.authHeaders() }),
+                            fetch('/api/delivery/orders/available', { headers: this.authHeaders() }),
+                            fetch('/api/delivery/earnings', { headers: this.authHeaders() })
+                        ]);
+
+                        if (pRes.ok) {
+                            const pData = await pRes.json();
+                            if (pData.success) this.partner = pData.partner;
+                        }
+                        if (aRes.ok) {
+                            const aData = await aRes.json();
+                            this.activeOrder = aData.active_order;
+                            if (this.activeOrder) {
+                                this.currentTab = 'trip';
+                                this.startGpsTracking();
+                            } else {
+                                this.stopGpsTracking();
+                            }
+                        }
+                        if (oRes.ok) {
+                            const oData = await oRes.json();
+                            this.availableOrders = oData.orders || [];
+                        }
+                        if (eRes.ok) {
+                            this.earnings = await eRes.json();
+                        }
+                    } catch(e) {
+                        console.error('Cockpit refresh error:', e);
+                    } finally {
+                        this.isRefreshing = false;
+                    }
+                },
+
+                async toggleAvailability() {
+                    const newStatus = this.partner.is_online ? 0 : 1;
+                    try {
+                        const res = await fetch('/api/delivery/availability', {
+                            method: 'PATCH',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({ is_online: newStatus })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.partner.is_online = data.is_online;
+                            this.showToast(data.message, 'success');
+                            await this.refreshCockpit();
+                        } else {
+                            this.showToast(data.error || 'Failed to update shift', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Network error updating shift', 'error');
+                    }
+                },
+
+                async acceptOrder(orderId) {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch(`/api/delivery/orders/${orderId}/accept`, {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('Delivery request accepted! Navigate to merchant store.', 'success');
+                            await this.refreshCockpit();
+                            this.currentTab = 'trip';
+                        } else {
+                            this.showToast(data.error || 'Could not claim order', 'error');
+                            await this.refreshCockpit();
+                        }
+                    } catch(e) {
+                        this.showToast('Connection error accepting order', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async markArrivedStore() {
+                    if (!this.activeOrder) return;
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch(`/api/delivery/orders/${this.activeOrder.order_id}/arrived-store`, {
+                            method: 'POST',
+                            headers: this.authHeaders()
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('Arrival confirmed! Collect Pickup OTP from merchant.', 'success');
+                            await this.refreshCockpit();
+                        } else {
+                            this.showToast(data.error || 'Error recording arrival', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Connection error', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async verifyPickupOTP() {
+                    if (!this.activeOrder || !this.otpInput.pickup) return;
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch(`/api/delivery/orders/${this.activeOrder.order_id}/verify-pickup`, {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({ pickup_otp: this.otpInput.pickup })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('Pickup verified! Package is now Out for Delivery 📦', 'success');
+                            this.otpInput.pickup = '';
+                            await this.refreshCockpit();
+                        } else {
+                            this.showToast(data.error || 'Invalid Pickup OTP', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Verification failed', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async verifyDeliveryOTP() {
+                    if (!this.activeOrder || !this.otpInput.delivery) return;
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch(`/api/delivery/orders/${this.activeOrder.order_id}/verify-delivery`, {
+                            method: 'POST',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({ delivery_otp: this.otpInput.delivery })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast(data.message || 'Delivery completed! Payout settled. 🎉', 'success');
+                            this.otpInput.delivery = '';
+                            await this.refreshCockpit();
+                            this.currentTab = 'earnings';
+                        } else {
+                            this.showToast(data.error || 'Invalid Delivery OTP', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Verification failed', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async updateProfile() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('/api/delivery/profile', {
+                            method: 'PATCH',
+                            headers: this.authHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({
+                                vehicle_type: this.partner.vehicle_type,
+                                vehicle_number: this.partner.vehicle_number,
+                                driving_license_number: this.partner.driving_license_number
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('Profile preferences saved successfully!', 'success');
+                            await this.refreshCockpit();
+                        } else {
+                            this.showToast(data.error || 'Failed to save', 'error');
+                        }
+                    } catch(e) {
+                        this.showToast('Network error saving profile', 'error');
+                    } finally {
+                        this.isLoading = false;
+                    }
+                }
+            };
+        }
+    </script>
+
+    <!-- Floating Delivery AI Assistant Widget -->
+    <div x-show="isLoggedIn" class="fixed bottom-6 right-6 z-50">
+        <!-- Floating Trigger Button -->
+        <button @click="aiAssistantOpen = !aiAssistantOpen" 
+                class="flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black text-xs sm:text-sm px-5 py-3 shadow-brand active:scale-95 transition">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Delivery AI</span>
+        </button>
+
+        <!-- Chat Drawer Card -->
+        <div x-show="aiAssistantOpen" 
+             x-transition
+             class="fixed bottom-20 right-6 w-[calc(100vw-3rem)] max-w-sm bg-white rounded-3xl border border-rose-100 shadow-2xl flex flex-col h-[32rem] overflow-hidden z-50">
+            <!-- Header -->
+            <div class="flex items-center gap-3 border-b border-rose-100 bg-[#fff1f3] px-4 py-3">
+                <span class="inline-flex shrink-0 items-center justify-center rounded-[26%] bg-gradient-to-br from-[#e11d48] to-[#f43f5e] w-8 h-8 shadow-sm">
+                    <svg viewBox="0 0 24 24" class="w-4 h-4 fill-white" aria-hidden="true">
+                        <path d="M12 21.2c-.4 0-.8-.1-1.1-.4C6.2 16.9 2 13.3 2 8.9 2 5.9 4.3 3.5 7.2 3.5c1.9 0 3.6 1 4.8 2.6 1.2-1.6 2.9-2.6 4.8-2.6 2.9 0 5.2 2.4 5.2 5.4 0 4.4-4.2 8-8.9 11.9-.3.3-.7.4-1.1.4z" />
+                    </svg>
+                </span>
+                <div class="flex-1">
+                    <p class="text-xs font-black text-slate-900">Delivery Fleet AI</p>
+                    <p class="text-[10px] text-slate-400 font-semibold">Gemini 2.5 Flash · Logistics Assistant</p>
+                </div>
+                <button @click="clearDeliveryAiChat()" title="Clear Chat" class="text-slate-400 hover:text-rose-600 p-1 text-xs">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button @click="aiAssistantOpen = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="flex-1 space-y-3 overflow-y-auto p-4 hide-scroll" id="deliveryAiStream">
+                <template x-for="(msg, idx) in aiMessages" :key="idx">
+                    <div :class="msg.from === 'user' ? 'flex justify-end' : ''">
+                        <div class="max-w-[85%] rounded-2xl px-3.5 py-2 text-xs font-semibold leading-relaxed whitespace-pre-line"
+                             :class="msg.from === 'user' ? 'bg-rose-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none'">
+                            <span x-text="msg.text"></span>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Typing Indicator -->
+                <div x-show="aiLoading" class="flex gap-1 bg-slate-100 px-3 py-2 rounded-2xl w-14">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+
+                <!-- Chips -->
+                <div x-show="aiMessages.length === 1" class="flex flex-wrap gap-1.5 pt-2">
+                    <template x-for="chip in aiPromptChips" :key="chip">
+                        <button @click="sendDeliveryAiQuery(chip)" class="rounded-full border border-rose-200 bg-rose-50/60 hover:bg-rose-100 px-3 py-1 text-[11px] font-bold text-rose-700 transition">
+                            <span x-text="chip"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <form @submit.prevent="sendDeliveryAiQuery(aiInput)" class="flex gap-2 border-t border-rose-100 p-3 bg-white">
+                <input type="text" x-model="aiInput" placeholder="Ask Delivery AI..." class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-rose-500 focus:outline-none">
+                <button type="submit" :disabled="aiLoading || !aiInput.trim()" class="rounded-xl bg-rose-600 px-3 py-2 text-white hover:bg-rose-700 disabled:opacity-50">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

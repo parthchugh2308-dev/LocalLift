@@ -1,21 +1,37 @@
 import sqlite3, hashlib, os
+from werkzeug.security import generate_password_hash
 
-if os.environ.get('VERCEL'):
-    DB = '/tmp/LocalLift_DB.sqlite'
-else:
-    DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'LocalLift_DB.sqlite')
+def get_db_path():
+    env_path = os.environ.get('DATABASE_PATH')
+    if env_path:
+        db_path = env_path
+    elif os.environ.get('VERCEL'):
+        db_path = '/tmp/LocalLift_DB.sqlite'
+    else:
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'LocalLift_DB.sqlite')
+    parent = os.path.dirname(os.path.abspath(db_path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    return db_path
+
+DB = get_db_path()
 
 def hash_pw(pw):
-    return hashlib.sha256(pw.encode()).hexdigest()
+    return generate_password_hash(pw)
 
-def init_db():
-    if os.path.exists(DB):
+def init_db(force=False):
+    target_db = get_db_path()
+    if os.path.exists(target_db) and not force:
+        print(f"Database already exists at {target_db}; preserving existing data. (Pass force=True to re-seed)")
+        return
+
+    if os.path.exists(target_db) and force:
         try:
-            os.remove(DB)
+            os.remove(target_db)
         except Exception:
             pass
             
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(target_db)
     c = conn.cursor()
 
     c.executescript('''
@@ -355,7 +371,16 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print('LocalLift database initialized successfully with 16 categories, 80+ products, and active offers.')
+    # Apply LocalLift 2.0 Pan-India schema extensions and seed data
+    try:
+        from migrate_v2_pan_india import run_migration
+        run_migration(target_db)
+    except Exception as e:
+        print(f"Notice: Stage 5 migration post-hook error: {e}")
+
+    print('LocalLift database initialized successfully with 16 categories, 80+ products, active offers, and LocalLift 2.0 delivery fleet infrastructure.')
 
 if __name__ == '__main__':
-    init_db()
+    import sys
+    force_flag = '--force' in sys.argv
+    init_db(force=force_flag)

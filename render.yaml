@@ -2,9 +2,19 @@ services:
   - type: web
     name: locallift
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt && python init_db.py
     startCommand: gunicorn app:app
+    disk:
+      name: locallift-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DATABASE_PATH
+        value: /var/data/LocalLift_DB.sqlite
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
