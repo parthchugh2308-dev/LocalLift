@@ -22,7 +22,17 @@ def hash_pw(pw):
 def init_db(force=False):
     target_db = get_db_path()
     if os.path.exists(target_db) and not force:
-        print(f"Database already exists at {target_db}; preserving existing data. (Pass force=True to re-seed)")
+        print(f"Database already exists at {target_db}; preserving existing data. Ensuring all migrations are up to date...")
+        try:
+            from migrate_v2_pan_india import run_migration
+            run_migration(target_db)
+        except Exception as e:
+            print(f"Notice: Pan-India migration: {e}")
+        try:
+            from migrate_stage11 import run_stage11_migration
+            run_stage11_migration(target_db)
+        except Exception as e:
+            print(f"Notice: Stage 11 migration: {e}")
         return
 
     if os.path.exists(target_db) and force:
@@ -377,6 +387,11 @@ def init_db(force=False):
         run_migration(target_db)
     except Exception as e:
         print(f"Notice: Stage 5 migration post-hook error: {e}")
+    try:
+        from migrate_stage11 import run_stage11_migration
+        run_stage11_migration(target_db)
+    except Exception as e:
+        print(f"Notice: Stage 11 migration post-hook error: {e}")
 
     print('LocalLift database initialized successfully with 16 categories, 80+ products, active offers, and LocalLift 2.0 delivery fleet infrastructure.')
 
