@@ -501,7 +501,7 @@
                             <span>Live Map</span>
                         </button>
 
-                        <button @click="tab = 'orders'" 
+                        <button @click="tab = 'orders'; fetchMyOrders()" 
                                 class="px-3.5 py-2 rounded-full text-xs font-extrabold transition flex items-center gap-1.5 relative"
                                 :class="tab === 'orders' ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20' : 'text-slate-600 hover:bg-rose-50 hover:text-rose-600'">
                             <i class="fa-solid fa-receipt"></i>
@@ -1202,7 +1202,7 @@
                     <span>Map</span>
                 </button>
 
-                <button @click="tab = 'orders'" class="flex flex-col items-center gap-1 text-[10px] font-extrabold relative" :class="tab === 'orders' ? 'text-rose-600' : 'text-slate-400'">
+                <button @click="tab = 'orders'; fetchMyOrders()" class="flex flex-col items-center gap-1 text-[10px] font-extrabold relative" :class="tab === 'orders' ? 'text-rose-600' : 'text-slate-400'">
                     <i class="fa-solid fa-receipt text-base"></i>
                     <span>Orders</span>
                     <span x-show="orders.length > 0" class="absolute -top-1 right-2 w-2 h-2 rounded-full bg-rose-600"></span>
@@ -1444,7 +1444,7 @@
                 </p>
 
                 <div class="w-full flex flex-col gap-2.5">
-                    <button @click="orderSuccessOpen = false; tab = 'orders'" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-2xl shadow-brand active:scale-95 transition">
+                    <button @click="orderSuccessOpen = false; tab = 'orders'; fetchMyOrders()" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-2xl shadow-brand active:scale-95 transition">
                         Track in My Orders
                     </button>
                     <button @click="orderSuccessOpen = false; tab = 'home'" class="w-full py-2.5 text-xs text-slate-400 font-bold hover:text-slate-700">
@@ -1910,6 +1910,12 @@
                         try { this.orders = JSON.parse(savedOrders); } catch(e){}
                     }
 
+                    const savedCart = localStorage.getItem('locallift_cart');
+                    if (savedCart) {
+                        try { this.cartItems = JSON.parse(savedCart); } catch(e){}
+                    }
+                    this.fetchMyOrders();
+
                     const savedFavs = localStorage.getItem('locallift_favorites');
                     if (savedFavs) {
                         try { this.favorites = JSON.parse(savedFavs); } catch(e){}
@@ -2325,7 +2331,14 @@
                             vendor_name: vendorName
                         });
                     }
+                    this.saveCart();
                     this.showToast(`${prod.product_name} added to basket! ❤️`, 'success');
+                },
+
+                saveCart() {
+                    try {
+                        localStorage.setItem('locallift_cart', JSON.stringify(this.cartItems));
+                    } catch(e){}
                 },
 
                 get cartByVendor() {
@@ -2358,7 +2371,10 @@
 
                 incrementCartQty(prodId) {
                     const item = this.cartItems.find(i => i.product_id === prodId);
-                    if (item) item.quantity += 1;
+                    if (item) {
+                        item.quantity += 1;
+                        this.saveCart();
+                    }
                 },
 
                 decrementCartQty(prodId) {
@@ -2368,6 +2384,7 @@
                         if (this.cartItems[idx].quantity <= 0) {
                             this.cartItems.splice(idx, 1);
                         }
+                        this.saveCart();
                     }
                 },
 
@@ -2393,12 +2410,17 @@
                         payment_method: this.selectedPaymentMethod || 'cod',
                         items: this.cartItems.map(i => ({
                             product_id: i.product_id,
+                            product_name: i.product_name,
+                            name: i.product_name,
+                            vendor_id: i.vendor_id,
+                            vendor_name: i.vendor_name,
                             quantity: i.quantity,
                             price: i.price
                         }))
                     };
 
-                    let confirmedOrderId = Math.floor(1000 + Math.random() * 9000);
+                    let confirmedOrderId = null;
+                    let orderPlacedSuccessfully = false;
 
                     try {
                         const res = await fetch('/api/checkout', {
@@ -2406,13 +2428,16 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data && data.payment && this.selectedPaymentMethod === 'online') {
+                        const data = await res.json();
+
+                        if (res.ok && data.success) {
+                            orderPlacedSuccessfully = true;
+                            if (data.payment && this.selectedPaymentMethod === 'online') {
                                 this.pendingPaymentData = data.payment;
                                 this.pendingPaymentData.group_id = data.group_id;
                                 this.pendingPaymentData.child_orders = data.child_orders;
                                 this.cartItems = [];
+                                this.saveCart();
                                 this.cartVendorId = null;
                                 this.cartVendorName = '';
                                 this.cartDrawerOpen = false;
@@ -2438,23 +2463,47 @@
                                 }
                             }
                         } else {
+                            // Fallback to legacy /api/orders
                             const legRes = await fetch('/api/orders', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     user_id: this.currentUser.user_id || 1,
-                                    vendor_id: this.cartVendorId || 1,
+                                    vendor_id: this.cartVendorId || (this.cartItems[0]?.vendor_id) || 1,
                                     notes: this.orderNote,
                                     items: payload.items
                                 })
                             });
-                            if (legRes.ok) {
-                                const legData = await legRes.json();
-                                if (legData && legData.order_id) confirmedOrderId = legData.order_id;
+                            const legData = await legRes.json();
+                            if (legRes.ok && legData.success) {
+                                orderPlacedSuccessfully = true;
+                                confirmedOrderId = legData.order_id;
+                                this.orders.unshift({
+                                    id: legData.order_id,
+                                    order_id: legData.order_id,
+                                    business_name: this.cartVendorName || 'Local Store',
+                                    total_amount: legData.total_amount,
+                                    status: 'pending',
+                                    payment_method: 'cod',
+                                    payment_status: 'pending',
+                                    created_at: new Date().toISOString(),
+                                    items: this.cartItems.map(i => ({ product_name: i.product_name, quantity: i.quantity, price: i.price }))
+                                });
+                            } else {
+                                const errMsg = (data && data.error) || (legData && legData.error) || 'Failed to place order';
+                                this.showToast(errMsg, 'error');
+                                return;
                             }
                         }
                     } catch(e) {
-                        console.error('Order checkout note:', e);
+                        console.error('Order checkout error:', e);
+                        this.showToast('Network error while placing order. Please try again.', 'error');
+                        return;
+                    }
+
+                    if (!orderPlacedSuccessfully || !confirmedOrderId) {
+                        this.showToast('Could not complete order. Please try again.', 'error');
+                        return;
                     }
 
                     this.lastOrderId = confirmedOrderId;
@@ -2462,11 +2511,32 @@
                     localStorage.setItem('LocalLift_orders', JSON.stringify(this.orders));
 
                     this.cartItems = [];
+                    this.saveCart();
                     this.cartVendorId = null;
                     this.cartVendorName = '';
                     this.cartDrawerOpen = false;
                     this.orderNote = '';
                     this.orderSuccessOpen = true;
+
+                    // Immediately synchronize customer's orders from server
+                    this.fetchMyOrders();
+                },
+
+                async fetchMyOrders() {
+                    try {
+                        const uid = this.currentUser?.user_id || 1;
+                        const res = await fetch(`/api/orders?user_id=${uid}`);
+                        if (res.ok) {
+                            const dbOrders = await res.json();
+                            if (Array.isArray(dbOrders) && dbOrders.length > 0) {
+                                this.orders = dbOrders;
+                                localStorage.setItem('locallift_orders', JSON.stringify(this.orders));
+                                localStorage.setItem('LocalLift_orders', JSON.stringify(this.orders));
+                            }
+                        }
+                    } catch(e) {
+                        console.error('fetchMyOrders error:', e);
+                    }
                 },
 
                 // ── "ASK LOCALLIFT AI" ASSISTANT ──────────────────────

@@ -10,6 +10,21 @@ def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'icon-192.png', mimetype='image/png')
 
 
+# Load local .env if present
+def _load_env_file():
+    env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_file):
+        with open(env_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    if k not in os.environ:
+                        os.environ[k] = v
+_load_env_file()
+
 # Production SECRET_KEY configuration
 is_production = bool(os.environ.get('RENDER') or os.environ.get('VERCEL') or (os.environ.get('FLASK_ENV') == 'production'))
 secret_key = os.environ.get('SECRET_KEY')
@@ -1030,6 +1045,30 @@ def manage_orders():
                 return jsonify({'success': False, 'error': 'Item quantity must be at least 1'}), 400
 
             p_row = conn.execute("SELECT * FROM Products WHERE product_id=?", (pid,)).fetchone()
+            if not p_row and (item.get('vendor_id') or item.get('product_name') or item.get('name') or (pid and pid >= 100 and item.get('price'))):
+                resolved_vid = vid or item.get('vendor_id') or (pid // 100 if pid >= 100 else 1)
+                v_check = conn.execute("SELECT * FROM Vendors WHERE vendor_id = ?", (resolved_vid,)).fetchone()
+                if not v_check:
+                    conn.execute("""
+                        INSERT OR IGNORE INTO Vendors (
+                            vendor_id, owner_user_id, business_name, category, address,
+                            city, city_id, zone_id, status, latitude, longitude, rating, phone, is_open
+                        ) VALUES (?, 1, ?, 'Grocery', 'Main Market', 'Local Market', 1, 1, 'approved', 30.9010, 75.8573, 4.8, '+91 9876543210', 1)
+                    """, (resolved_vid, f"Neighborhood Store #{resolved_vid}"))
+                    conn.commit()
+                item_name = item.get('product_name') or item.get('name') or f"Local Item #{pid}"
+                try:
+                    item_price = float(item.get('price', 50.0))
+                except (ValueError, TypeError):
+                    item_price = 50.0
+                conn.execute("""
+                    INSERT OR IGNORE INTO Products (
+                        product_id, vendor_id, product_name, category, price, description, availability
+                    ) VALUES (?, ?, ?, 'Grocery', ?, 'Fresh neighborhood item', 1)
+                """, (pid, resolved_vid, item_name, item_price))
+                conn.commit()
+                p_row = conn.execute("SELECT * FROM Products WHERE product_id=?", (pid,)).fetchone()
+
             if not p_row:
                 conn.close()
                 return jsonify({'success': False, 'error': f'Product #{pid} not found in catalog'}), 400
@@ -1070,7 +1109,25 @@ def manage_orders():
         return jsonify({'success': True, 'order_id': oid, 'id': oid, 'total_amount': calculated_total})
 
     uid = request.args.get('user_id', 1)
-    orders = [dict(o) for o in conn.execute("SELECT * FROM Orders WHERE user_id=? ORDER BY created_at DESC", (uid,)).fetchall()]
+    rows = conn.execute("""
+        SELECT o.*, v.business_name, v.category as vendor_category, v.address as vendor_address
+        FROM Orders o
+        LEFT JOIN Vendors v ON o.vendor_id = v.vendor_id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC
+    """, (uid,)).fetchall()
+    orders = []
+    for r in rows:
+        o = dict(r)
+        items = [dict(it) for it in conn.execute("""
+            SELECT oi.*, COALESCE(p.product_name, 'Local Item') as product_name, p.image
+            FROM Order_Items oi
+            LEFT JOIN Products p ON oi.product_id = p.product_id
+            WHERE oi.order_id = ?
+        """, (o['order_id'],)).fetchall()]
+        o['items'] = items
+        o['id'] = o['order_id']
+        orders.append(o)
     conn.close()
     return jsonify(orders)
 
@@ -1653,7 +1710,7 @@ def delivery_register():
 @app.route('/api/delivery/login', methods=['POST'])
 def delivery_login():
     d = request.json or {}
-    identifier = d.get('email', d.get('phone', '')).strip().lower()
+    identifier = (d.get('identifier') or d.get('email') or d.get('phone') or '').strip().lower()
     password = d.get('password', '')
 
     # Demo delivery login bypass
@@ -2574,6 +2631,54 @@ def multi_vendor_checkout():
             JOIN Vendors v ON p.vendor_id = v.vendor_id
             WHERE p.product_id = ?
         """, (pid,)).fetchone()
+
+        if not p_row and (item.get('vendor_id') or item.get('product_name') or item.get('name') or (pid and pid >= 100 and item.get('price'))):
+            resolved_vid = item.get('vendor_id') or (pid // 100 if pid >= 100 else 1)
+            v_check = conn.execute("SELECT * FROM Vendors WHERE vendor_id = ?", (resolved_vid,)).fetchone()
+            if not v_check:
+                c_id = target_city or (customer['city_id'] if customer else 1) or 1
+                z_row = conn.execute("SELECT zone_id FROM Zones WHERE city_id = ? LIMIT 1", (c_id,)).fetchone()
+                z_id = z_row['zone_id'] if z_row else 1
+                v_name = item.get('vendor_name') or f"Neighborhood Store #{resolved_vid}"
+                conn.execute("""
+                    INSERT OR IGNORE INTO Vendors (
+                        vendor_id, owner_user_id, business_name, category, address,
+                        city, city_id, zone_id, status, latitude, longitude, rating, phone, is_open
+                    ) VALUES (?, 1, ?, 'Grocery', 'Main Market', 'Local Market', ?, ?, 'approved', ?, ?, 4.8, '+91 9876543210', 1)
+                """, (resolved_vid, v_name, c_id, z_id, dropoff_lat or 30.9010, dropoff_lng or 75.8573))
+                conn.commit()
+
+            p_check = conn.execute("SELECT * FROM Products WHERE product_id = ?", (pid,)).fetchone()
+            if not p_check:
+                item_name = item.get('product_name') or item.get('name')
+                try:
+                    item_price = float(item.get('price', 50.0))
+                except (ValueError, TypeError):
+                    item_price = 50.0
+                if not item_name:
+                    cat_items = CATEGORY_METADATA.get('Grocery', {}).get('items', [])
+                    idx = (pid % 100) - 1
+                    if 0 <= idx < len(cat_items):
+                        item_name = cat_items[idx]['name']
+                        item_price = float(cat_items[idx]['price'])
+                    else:
+                        item_name = f"Local Store Item #{pid}"
+
+                conn.execute("""
+                    INSERT OR IGNORE INTO Products (
+                        product_id, vendor_id, product_name, category, price, description, availability
+                    ) VALUES (?, ?, ?, 'Grocery', ?, 'Fresh neighborhood item', 1)
+                """, (pid, resolved_vid, item_name, item_price))
+                conn.commit()
+
+            p_row = conn.execute("""
+                SELECT p.*, v.vendor_id, v.business_name, v.category, v.address,
+                       v.city_id, v.zone_id, v.status as vendor_status,
+                       v.latitude as v_lat, v.longitude as v_lng
+                FROM Products p
+                JOIN Vendors v ON p.vendor_id = v.vendor_id
+                WHERE p.product_id = ?
+            """, (pid,)).fetchone()
 
         if not p_row:
             conn.close()

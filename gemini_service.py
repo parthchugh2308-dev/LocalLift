@@ -26,7 +26,7 @@ def get_gemini_api_key():
     return (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
 
 def get_gemini_model():
-    return (os.environ.get('GEMINI_MODEL') or 'gemini-2.5-flash').strip()
+    return (os.environ.get('GEMINI_MODEL') or 'gemini-3.5-flash').strip()
 
 GEMINI_API_TIMEOUT = 10.0  # seconds
 
